@@ -63,9 +63,17 @@ class TraceItem(BaseModel):
     node: str
     ms: int
 
+class EvidenceItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    title: str = ""
+    url: str = ""
+    date: Optional[str] = None
+    snippet: str = ""
+
 class Claim(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: int
+    title: str = ""
     text: str = ""
     category: str = "other"
     verdict: str = "Fresh"
@@ -73,6 +81,7 @@ class Claim(BaseModel):
     current_fact: str = ""
     reason: str = ""
     sources: list[str] = Field(default_factory=list)
+    evidence: list[EvidenceItem] = Field(default_factory=list)
     cached: bool = False
 
 class Result(BaseModel):
@@ -81,6 +90,7 @@ class Result(BaseModel):
     overall: int
     cache_hits: int = 0
     rewritten: str = ""
+    stable_facts: list[str] = Field(default_factory=list)
     trace: list[TraceItem] = Field(default_factory=list)
     claims: list[Claim] = Field(default_factory=list)
 
@@ -100,6 +110,9 @@ def build(answer: str, state: dict) -> Result:
     if not isinstance(cache_hits, int):
         cache_hits = sum(1 for c in claims if c.cached)
     rewritten = state.get("rewritten", "")
+    stable_facts = state.get("stable_facts", [])
+    if not isinstance(stable_facts, list):
+        stable_facts = []
     trace_raw = state.get("trace", [])
     trace = [TraceItem(**t) if isinstance(t, dict) else t for t in trace_raw]
     return Result(
@@ -107,6 +120,7 @@ def build(answer: str, state: dict) -> Result:
         overall=overall,
         cache_hits=cache_hits,
         rewritten=rewritten,
+        stable_facts=stable_facts,
         trace=trace,
         claims=claims,
     )
