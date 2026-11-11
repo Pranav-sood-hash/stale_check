@@ -24,6 +24,9 @@ def model(env: str, default: str = "", temp: float = 0.0) -> dict:
             model_name = model_name.removeprefix("openai/")
         elif model_name.startswith("anthropic/") or model_name.startswith("ollama/"):
             model_name = "gpt-4o-mini"
+    else:
+        if model_name == "openai/gpt-oss-120b":
+            model_name = "groq/openai/gpt-oss-120b"
 
     return {
         "env": env,
