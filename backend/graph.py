@@ -456,7 +456,7 @@ def run_judge_logic(claims: list[dict], analysis_list: list[dict], all_evidence:
             "reason": final_reason,
             "sources": sources,
             "evidence": _build_evidence_items(sources, c_evidence),
-            "cached": False
+            "cached": bool(c.get("cached", False))
         })
 
     return results
@@ -552,6 +552,7 @@ def search_node(state: dict) -> dict:
     for c in claims:
         try:
             ev_list, from_cache = fetch_evidence(c)
+            c["cached"] = bool(from_cache)
             if from_cache:
                 cache_hits += 1
             norm_ev = normalize_evidence(c["id"], ev_list)
@@ -560,6 +561,7 @@ def search_node(state: dict) -> dict:
             logger.error(f"Search retrieval error for claim id={c.get('id')}: {exc}")
 
     return {
+        "claims": claims,
         "evidence": all_evidence,
         "cached": cache_hits
     }

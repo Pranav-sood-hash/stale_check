@@ -3,416 +3,3065 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StaleCheck - Live Freshness Detector</title>
+  <title>StaleCheck — AI Answer Freshness Detector</title>
+  <meta name="description" content="Evidence-grounded factual freshness detector and staleness auditor for AI answers.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --card2: #263348;
-      --border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #38bdf8;
-      --primary-hover: #0284c7;
-      --accent-fresh: #22c55e;
-      --accent-stale: #ef4444;
-      --accent-warn: #f59e0b;
-      --accent-unverifiable: #f59e0b;
+      --bg: #0a0d14;
+      --bg-elevated: #0e1320;
+      --card: #121724;
+      --card-muted: #171e2e;
+      --card-hover: #161c2d;
+      --border: #222a3d;
+      --border-strong: #2e3852;
+      --border-focus: #22d3ee;
+      --text: #e7ecf5;
+      --text-secondary: #9aa5be;
+      --muted: #8a94ab;
+      --accent: #22d3ee;
+      --accent-hover: #06b6d4;
+      --accent-soft: rgba(34, 211, 238, 0.12);
+      --accent-glow: rgba(34, 211, 238, 0.25);
+      --fresh: #34d399;
+      --fresh-soft: rgba(52, 211, 153, 0.14);
+      --fresh-border: rgba(52, 211, 153, 0.32);
+      --stale: #f87171;
+      --stale-soft: rgba(248, 113, 113, 0.14);
+      --stale-border: rgba(248, 113, 113, 0.32);
+      --unverifiable: #fbbf24;
+      --unverifiable-soft: rgba(251, 191, 36, 0.14);
+      --unverifiable-border: rgba(251, 191, 36, 0.32);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', "SF Mono", Menlo, Consolas, monospace;
+      --shadow-card: 0 4px 18px -2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+      --shadow-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem 1rem; }
-    .container { max-width: 960px; margin: 0 auto; }
-    header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
-    h1 { font-size: 1.75rem; font-weight: 700; color: var(--primary); }
-    p.subtitle { color: var(--text-muted); font-size: 0.95rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
-    .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.75rem; }
-    textarea { width: 100%; height: 120px; background: #090d16; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.75rem; font-size: 0.95rem; resize: vertical; }
-    .actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
-    button { background: var(--primary); color: #000; border: none; padding: 0.6rem 1.2rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.2s; font-size: 0.9rem; }
-    button:hover { background: var(--primary-hover); }
-    button.secondary { background: #334155; color: var(--text); }
-    button.secondary:hover { background: #475569; }
-    button.sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
-    .status-bar { display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; flex-wrap: wrap; }
-    #streamEvents { margin: 0.75rem 0; font-size: 0.85rem; color: var(--text-muted); }
 
-    /* Freshness meter */
-    .freshness-block { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-    .freshness-score { font-size: 2.5rem; font-weight: 800; }
-    .freshness-score span { font-size: 1.1rem; font-weight: 400; color: var(--text-muted); }
-    .chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.9rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-    .chip-fresh { background: rgba(34,197,94,0.15); color: var(--accent-fresh); border: 1px solid rgba(34,197,94,0.3); }
-    .chip-stale { background: rgba(239,68,68,0.15); color: var(--accent-stale); border: 1px solid rgba(239,68,68,0.3); }
-    .chip-warn { background: rgba(245,158,11,0.15); color: var(--accent-warn); border: 1px solid rgba(245,158,11,0.3); }
-    .freshness-caption { color: var(--text-muted); font-size: 0.9rem; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    /* Claim cards */
-    .claims-grid { display: grid; gap: 1rem; }
-    .claim-card { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.25rem; }
-    .claim-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-    .claim-num { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
-    .claim-title { font-weight: 600; font-size: 0.95rem; flex: 1; }
-    .verdict-badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
-    .badge-fresh { background: rgba(34,197,94,0.2); color: var(--accent-fresh); }
-    .badge-stale { background: rgba(239,68,68,0.2); color: var(--accent-stale); }
-    .badge-unverifiable { background: rgba(245,158,11,0.2); color: var(--accent-warn); }
-    .claim-score { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
-    .claim-text { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.6rem; }
-    .toggle-btn { font-size: 0.78rem; color: var(--primary); background: none; border: none; padding: 0; cursor: pointer; font-weight: 600; }
-    .toggle-btn:hover { color: var(--primary-hover); }
-    .evidence-panel { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.85rem; display: none; }
-    .evidence-panel.open { display: block; }
-    .evidence-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
-    .evidence-item { background: #090d16; border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem; margin-bottom: 0.5rem; }
-    .evidence-item a { color: var(--primary); text-decoration: none; font-weight: 500; word-break: break-all; }
-    .evidence-item a:hover { text-decoration: underline; }
-    .evidence-date { font-size: 0.75rem; color: var(--text-muted); margin: 0.2rem 0; }
-    .evidence-snippet { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; font-style: italic; }
-    .stable-facts { margin-top: 1rem; }
-    .stable-fact-item { font-size: 0.85rem; color: var(--text-muted); padding: 0.4rem 0.75rem; border-left: 2px solid #334155; margin-bottom: 0.4rem; }
+    body {
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(at 0% 0%, #101626 0px, transparent 65%),
+        radial-gradient(at 100% 0%, #0d1624 0px, transparent 55%),
+        linear-gradient(180deg, #0a0d14 0%, #07090f 100%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
 
-    /* Diff columns */
-    .diff-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media(max-width:600px) { .diff-cols { grid-template-columns: 1fr; } }
-    .diff-box { background: #090d16; border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; font-size: 0.88rem; white-space: pre-wrap; word-break: break-word; min-height: 80px; }
-    .diff-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
-    mark { background: rgba(245,158,11,0.3); color: var(--accent-warn); border-radius: 2px; padding: 0 2px; }
+    .app-container {
+      width: 100%;
+      max-width: 1140px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header Bar */
+    header.app-header {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #0284c7);
+      box-shadow: 0 2px 10px var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #030712;
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .brand-text p {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .header-status-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      background: var(--card-muted);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      user-select: none;
+    }
+
+    .status-badge.accent {
+      background: var(--accent-soft);
+      border-color: rgba(34, 211, 238, 0.3);
+      color: var(--accent);
+    }
+
+    .status-badge.online {
+      background: var(--fresh-soft);
+      border-color: var(--fresh-border);
+      color: var(--fresh);
+    }
+
+    .status-badge.offline {
+      background: var(--unverifiable-soft);
+      border-color: var(--unverifiable-border);
+      color: var(--unverifiable);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .btn-toggle {
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: var(--radius-sm);
+      background: var(--card-muted);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: var(--font-sans);
+    }
+
+    .btn-toggle:hover {
+      background: var(--card-hover);
+      border-color: var(--border-strong);
+    }
+
+    .btn-toggle.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      padding: 22px;
+      position: relative;
+    }
+
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Mode Switching & Presets */
+    .tabs-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .segmented-control {
+      display: inline-flex;
+      background: var(--card-muted);
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      gap: 3px;
+    }
+
+    .segment-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 7px 15px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .segment-btn:hover {
+      color: var(--text);
+    }
+
+    .segment-btn.active {
+      background: var(--bg-elevated);
+      color: var(--accent);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-strong);
+    }
+
+    .quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .app-select {
+      background: var(--card-muted);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .app-select:hover, .app-select:focus {
+      border-color: var(--accent);
+    }
+
+    .action-btn-ghost {
+      background: var(--card-muted);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-btn-ghost:hover {
+      color: var(--text);
+      background: var(--card-hover);
+      border-color: var(--border-strong);
+    }
+
+    /* Text Input Area */
+    .input-wrapper {
+      margin-bottom: 16px;
+    }
+
+    textarea.text-input {
+      width: 100%;
+      min-height: 125px;
+      background: #060910;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 0.94rem;
+      line-height: 1.6;
+      padding: 14px 16px;
+      resize: vertical;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      outline: none;
+    }
+
+    textarea.text-input:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    textarea.text-input::placeholder {
+      color: #55627e;
+    }
+
+    .input-actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .input-hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0284c7);
+      color: #030712;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 9px 22px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 10px var(--accent-glow);
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #38e1fc, #0396e0);
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0, 0, 0, 0.25);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    .btn-primary.loading .btn-spinner {
+      display: inline-block;
+    }
+
+    .btn-primary.loading .btn-icon {
+      display: none;
+    }
+
+    /* Alerts */
+    .alert-banner {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 0.86rem;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 14px;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .alert-banner.error {
+      display: flex;
+      background: var(--stale-soft);
+      border: 1px solid var(--stale-border);
+      color: #fca5a5;
+    }
+
+    .alert-banner.warning {
+      display: flex;
+      background: var(--unverifiable-soft);
+      border: 1px solid var(--unverifiable-border);
+      color: #fde047;
+    }
+
+    .alert-banner.info {
+      display: flex;
+      background: var(--accent-soft);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      color: #67e8f9;
+    }
+
+    .alert-banner svg {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
 
     /* Stepper */
-    .stepper { display: flex; gap: 0; flex-wrap: wrap; }
-    .step { display: flex; align-items: center; gap: 0; flex: 1; min-width: 120px; }
-    .step-dot { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #000; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .step-info { padding: 0 0.5rem; }
-    .step-name { font-size: 0.8rem; font-weight: 600; }
-    .step-ms { font-size: 0.72rem; color: var(--text-muted); }
-    .step-line { flex: 1; height: 2px; background: var(--border); min-width: 20px; }
-    .step:last-child .step-line { display: none; }
+    .stepper-container {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
 
-    /* Sources */
-    .sources-list { display: flex; flex-direction: column; gap: 0.75rem; }
-    .source-row { background: #090d16; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; }
-    .source-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.2rem; }
-    .source-url a { color: var(--primary); font-size: 0.82rem; word-break: break-all; text-decoration: none; }
-    .source-url a:hover { text-decoration: underline; }
-    .source-details { margin-top: 0.4rem; font-size: 0.8rem; color: var(--text-muted); display: none; }
-    .source-details.open { display: block; }
+    .stepper-container.visible {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
 
-    pre { background: #090d16; border: 1px solid var(--border); padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.82rem; max-height: 350px; }
-    .hidden { display: none; }
+    .stepper-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 1.5s infinite;
+    }
+
+    .stepper-track {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .stepper-track {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+    }
+
+    .step-item {
+      background: var(--card-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step-item.pending {
+      opacity: 0.5;
+    }
+
+    .step-item.active {
+      opacity: 1;
+      border-color: var(--accent);
+      background: #0c1424;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+
+    .step-item.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: sweep 1.4s infinite;
+    }
+
+    .step-item.completed {
+      opacity: 1;
+      border-color: var(--fresh-border);
+      background: var(--card-muted);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .step-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      background: #1c263a;
+      color: var(--muted);
+      transition: all 0.2s ease;
+    }
+
+    .step-item.active .step-num {
+      background: var(--accent);
+      color: #030712;
+    }
+
+    .step-item.completed .step-num {
+      background: var(--fresh);
+      color: #030712;
+    }
+
+    .step-time {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      background: #090e18;
+      padding: 1px 5px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .step-item.completed .step-time {
+      display: inline-block;
+      color: var(--fresh);
+      font-weight: 600;
+    }
+
+    .step-name {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .step-desc {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    /* Skeleton Loading */
+    .skeleton-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      padding: 22px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+
+    .skeleton-wrap.visible {
+      display: flex;
+    }
+
+    .skeleton-line {
+      height: 16px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #172033 25%, #222e47 50%, #172033 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.6s infinite;
+    }
+
+    /* Results Section */
+    .results-section {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .results-section.visible {
+      display: flex;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 860px) {
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Score Hero Card */
+    .score-hero-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 26px 20px;
+    }
+
+    .score-conic-ring {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: conic-gradient(var(--score-color, var(--stale)) calc(var(--score-deg, 0) * 1%), #1e293b 0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-bottom: 14px;
+      transition: background 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+
+    .score-conic-ring::before {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      background: var(--card);
+      border-radius: 50%;
+      z-index: 1;
+    }
+
+    .score-center-text {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .score-number {
+      font-size: 2.3rem;
+      font-weight: 800;
+      font-family: var(--font-sans);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--score-color, var(--text));
+    }
+
+    .score-max {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .score-chip-wrap {
+      margin-top: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .chip.chip-fresh {
+      background: var(--fresh-soft);
+      color: var(--fresh);
+      border: 1px solid var(--fresh-border);
+    }
+
+    .chip.chip-stale {
+      background: var(--stale-soft);
+      color: var(--stale);
+      border: 1px solid var(--stale-border);
+    }
+
+    .chip.chip-warn {
+      background: var(--unverifiable-soft);
+      color: var(--unverifiable);
+      border: 1px solid var(--unverifiable-border);
+    }
+
+    .score-summary-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* Metrics Summary Card */
+    .metrics-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .metrics-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .metrics-header h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .metrics-header p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .export-actions-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-export {
+      background: var(--card-muted);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      font-family: var(--font-sans);
+    }
+
+    .btn-export:hover {
+      background: var(--card-hover);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .metrics-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .metric-box {
+      background: #080c16;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .metric-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      font-family: var(--font-sans);
+      color: var(--text);
+    }
+
+    .metric-pill {
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* Collapsible Architecture & Routing Table */
+    .arch-details-toggle {
+      background: #080c16;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .arch-details-summary {
+      padding: 9px 12px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .arch-details-summary:hover {
+      background: var(--accent-soft);
+    }
+
+    .arch-details-content {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.74rem;
+      background: #050810;
+    }
+
+    .arch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+    }
+
+    .arch-table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .arch-table td:first-child {
+      color: var(--muted);
+      font-weight: 600;
+      width: 90px;
+    }
+
+    .arch-table td:nth-child(2) {
+      color: var(--accent);
+    }
+
+    .arch-table td:last-child {
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    /* Original Answer Display */
+    .original-answer-box {
+      background: #060910;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      font-size: 0.94rem;
+      line-height: 1.65;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Evaluated Claims Section */
+    .claims-filter-group {
+      display: inline-flex;
+      background: var(--card-muted);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-sans);
+    }
+
+    .filter-btn:hover {
+      color: var(--text);
+    }
+
+    .filter-btn.active {
+      background: var(--bg-elevated);
+      color: var(--accent);
+      border: 1px solid var(--border-strong);
+    }
+
+    .claims-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .claim-card {
+      background: var(--card-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-card);
+      transition: border-color 0.2s ease;
+      position: relative;
+    }
+
+    .claim-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .claim-card.stale-card {
+      border-left: 4px solid var(--stale);
+    }
+
+    .claim-card.fresh-card {
+      border-left: 4px solid var(--fresh);
+    }
+
+    .claim-card.unverifiable-card {
+      border-left: 4px solid var(--unverifiable);
+    }
+
+    .claim-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .claim-badges-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .claim-num {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .verdict-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .verdict-badge.stale {
+      background: var(--stale-soft);
+      color: var(--stale);
+      border: 1px solid var(--stale-border);
+    }
+
+    .verdict-badge.fresh {
+      background: var(--fresh-soft);
+      color: var(--fresh);
+      border: 1px solid var(--fresh-border);
+    }
+
+    .verdict-badge.unverifiable {
+      background: var(--unverifiable-soft);
+      color: var(--unverifiable);
+      border: 1px solid var(--unverifiable-border);
+    }
+
+    .category-chip {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      background: #0d1424;
+      border: 1px solid var(--border);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: var(--font-mono);
+      text-transform: lowercase;
+    }
+
+    .memory-hit-chip {
+      font-size: 0.7rem;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .claim-score-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .claim-score-val {
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .score-mini-bar {
+      width: 60px;
+      height: 6px;
+      background: #172033;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .score-mini-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s ease;
+    }
+
+    .claim-title-text {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .claim-original-text {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .toggle-evidence-btn {
+      font-size: 0.78rem;
+      color: var(--accent);
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.2s ease;
+    }
+
+    .toggle-evidence-btn:hover {
+      color: var(--accent-hover);
+    }
+
+    .evidence-panel {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .evidence-panel.open {
+      display: flex;
+    }
+
+    .detail-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .detail-row-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .detail-row-val {
+      font-size: 0.86rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .detail-row-val.current-fact-val {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .evidence-cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .evidence-item-card {
+      background: #070b14;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 0.82rem;
+    }
+
+    .evidence-item-card a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .evidence-item-card a:hover {
+      text-decoration: underline;
+    }
+
+    .evidence-date {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin: 2px 0;
+    }
+
+    .evidence-snippet {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-top: 2px;
+      line-height: 1.45;
+    }
+
+    .sources-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .source-pill-link {
+      font-size: 0.72rem;
+      color: var(--accent);
+      background: #080d18;
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 5px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      font-family: var(--font-mono);
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .source-pill-link:hover {
+      background: var(--card-hover);
+      border-color: var(--accent);
+    }
+
+    .source-pill-link svg {
+      width: 11px;
+      height: 11px;
+      flex-shrink: 0;
+    }
+
+    /* Stable Facts Block */
+    .stable-facts-block {
+      background: #080c16;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-top: 14px;
+    }
+
+    .stable-fact-item {
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border-left: 2px solid var(--border-strong);
+      margin-top: 6px;
+    }
+
+    /* Answer Comparison Card */
+    .diff-control-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn-copy {
+      background: var(--card-muted);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: var(--font-sans);
+    }
+
+    .btn-copy:hover {
+      background: var(--card-hover);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-copy.copied {
+      background: var(--fresh-soft);
+      border-color: var(--fresh-border);
+      color: var(--fresh);
+    }
+
+    .comparison-content-box {
+      background: #060910;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      font-size: 0.94rem;
+      line-height: 1.7;
+      color: var(--text);
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .diff-ins {
+      background: var(--fresh-soft);
+      color: #4ade80;
+      border-bottom: 2px solid var(--fresh);
+      padding: 1px 4px;
+      border-radius: 3px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .diff-del {
+      background: var(--stale-soft);
+      color: #f87171;
+      text-decoration: line-through;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* Dedicated Sources List */
+    .sources-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .source-row {
+      background: #070b14;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+
+    .source-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .source-title-text {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+
+    .source-url-text a {
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      word-break: break-all;
+      text-decoration: none;
+    }
+
+    .source-url-text a:hover {
+      text-decoration: underline;
+    }
+
+    .source-details-panel {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: none;
+    }
+
+    .source-details-panel.open {
+      display: block;
+    }
+
+    pre.raw-json-block {
+      background: #050810;
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      max-height: 300px;
+    }
+
+    /* Footer */
+    footer.app-footer {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      width: 100%;
+      max-width: 1140px;
+      padding: 0 8px;
+    }
+
+    footer.app-footer strong {
+      color: var(--text);
+    }
+
+    /* Animations & Utility */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+
+    @keyframes sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+      }
+      .app-header, .tabs-header, .quick-actions, .input-actions-bar,
+      .alert-banner, .stepper-container, .skeleton-wrap, .diff-control-bar,
+      .claims-filter-group, footer, .export-actions-wrap, #mockModeBanner {
+        display: none !important;
+      }
+      .card, .claim-card, .source-row {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .score-conic-ring::before {
+        background: #ffffff !important;
+      }
+      .detail-row-val, .claim-original-text, .original-answer-box, .comparison-content-box {
+        color: #000000 !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>StaleCheck Dashboard</h1>
-      <p class="subtitle">PS6 Stale-Answer Detector — FastAPI</p>
-      <div class="status-bar" id="statusBar"><span>System: Checking...</span></div>
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>StaleCheck</h1>
+          <p>AI Answer Freshness Detector · Problem Statement 6</p>
+        </div>
+      </div>
+
+      <div class="header-status-group">
+        <div class="status-badge accent" title="Search & Gateway layer">
+          <span class="status-dot"></span> Tavily + LLM Gateway
+        </div>
+        <div id="backendHealthBadge" class="status-badge online" title="FastAPI status (/api/health)">
+          <span class="status-dot"></span> <span id="backendHealthText">Checking Gateway…</span>
+        </div>
+        <button id="mockToggleBtn" class="btn-toggle" type="button" title="Toggle Mock Mode (for offline testing)">
+          <span class="status-dot"></span> Mock Mode: <span id="mockStatusText">Off</span>
+        </button>
+      </div>
     </header>
 
-    <div class="card">
-      <label for="input-text" style="display:block;margin-bottom:0.5rem;font-weight:600;">LLM Answer / Prompt to Verify</label>
-      <textarea id="input-text" placeholder="Enter text to analyze (3 to 6000 characters)...">OpenAI released GPT-4 in March 2023 at a price of $0.03 per 1k prompt tokens.</textarea>
-      <div class="actions">
-        <button id="btnCheck">Check Answer</button>
-        <button id="btnStream" class="secondary">Stream Check (SSE)</button>
-        <button id="btnAsk" class="secondary">Ask &amp; Check</button>
-        <button id="btnHealth" class="secondary">Health Check</button>
-      </div>
-      <div id="streamEvents">Ready</div>
+    <!-- Mock Mode Warning Banner -->
+    <div id="mockModeBanner" class="alert-banner info" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+      <span><strong>MOCK DEMO MODE ACTIVE:</strong> Verification runs using offline demonstration data without contacting live search or LLM APIs.</span>
     </div>
 
-    <div id="resultsArea" class="hidden">
+    <!-- Main Input Card -->
+    <section class="card" aria-labelledby="input-heading">
+      <div class="tabs-header">
+        <div class="segmented-control" role="tablist">
+          <button id="tabCheck" class="segment-btn active" role="tab" aria-selected="true" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+            </svg>
+            Check Answer
+          </button>
+          <button id="tabAsk" class="segment-btn" role="tab" aria-selected="false" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Ask Local LLM
+          </button>
+        </div>
 
-      <!-- 1. Original Answer -->
-      <div class="card">
-        <div class="section-title">Original Answer</div>
-        <div id="origAnswer" style="font-size:0.95rem;white-space:pre-wrap;word-break:break-word;"></div>
-      </div>
-
-      <!-- 2. Freshness -->
-      <div class="card">
-        <div class="section-title">Answer Freshness</div>
-        <div class="freshness-block">
-          <div class="freshness-score" id="freshnessScore">— <span>/ 100</span></div>
-          <div>
-            <span id="freshnessChip" class="chip"></span>
-            <div class="freshness-caption" id="freshnessCaption"></div>
-          </div>
+        <div class="quick-actions">
+          <select id="presetScenarioSelect" class="app-select" aria-label="Select demo scenario">
+            <option value="">Demo Presets…</option>
+            <option value="pricing">Scenario 1: Stale AI Pricing</option>
+            <option value="version">Scenario 2: Stale Tech Release</option>
+            <option value="fresh">Scenario 3: Verified Fresh Facts</option>
+            <option value="unverifiable">Scenario 4: Obscure / Unverifiable</option>
+            <option value="nova_spec">Scenario 5: Nova SDK (Spec Demo with Evidence)</option>
+            <option value="no_claims">Scenario 6: No Time-Sensitive Claims</option>
+          </select>
+          <button id="loadExampleBtn" class="action-btn-ghost" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            Load Example
+          </button>
+          <button id="clearInputBtn" class="action-btn-ghost" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+            </svg>
+            Clear
+          </button>
         </div>
       </div>
 
-      <!-- 3. Claim-by-Claim -->
-      <div class="card">
-        <div class="section-title">Claim-by-Claim Analysis</div>
-        <div id="claimsGrid" class="claims-grid"></div>
-        <div id="stableFactsBlock" class="stable-facts hidden">
-          <div class="section-title" style="margin-top:1rem;">Stable Facts (Not Checked)</div>
+      <div class="input-wrapper">
+        <textarea
+          id="mainInput"
+          class="text-input"
+          rows="5"
+          placeholder="Enter or paste an AI-generated answer to verify its freshness against live web sources (3 to 6000 characters)…"
+          aria-label="Input content"
+        >OpenAI released GPT-4 in March 2023 at a price of $0.03 per 1k prompt tokens. ChatGPT Plus costs $20 per month.</textarea>
+      </div>
+
+      <div class="input-actions-bar">
+        <div class="input-hint" id="modeHintText">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span>StaleCheck audits volatile claims like pricing, version releases, leadership, and laws.</span>
+        </div>
+
+        <button id="runBtn" class="btn-primary" type="button">
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <svg class="btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          <span id="runBtnText">Run Verification</span>
+        </button>
+      </div>
+
+      <div id="alertBanner" class="alert-banner" role="alert" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <span id="alertMessageText"></span>
+      </div>
+
+      <!-- Live Stepper -->
+      <div id="stepperContainer" class="stepper-container">
+        <div class="stepper-title">
+          <span class="pulse-dot"></span>
+          <span>Live Verification Pipeline</span>
+        </div>
+        <div class="stepper-track">
+          <div class="step-item pending" id="step-extract" data-node="extract">
+            <div class="step-header">
+              <span class="step-num">1</span>
+              <span class="step-time" id="time-extract">—</span>
+            </div>
+            <div class="step-name">Extract</div>
+            <div class="step-desc">Isolate volatile claims</div>
+          </div>
+
+          <div class="step-item pending" id="step-search" data-node="search">
+            <div class="step-header">
+              <span class="step-num">2</span>
+              <span class="step-time" id="time-search">—</span>
+            </div>
+            <div class="step-name">Search</div>
+            <div class="step-desc">Tavily web + cache</div>
+          </div>
+
+          <div class="step-item pending" id="step-analyze" data-node="analyze">
+            <div class="step-header">
+              <span class="step-num">3</span>
+              <span class="step-time" id="time-analyze">—</span>
+            </div>
+            <div class="step-name">Analyze</div>
+            <div class="step-desc">Frontier evidence check</div>
+          </div>
+
+          <div class="step-item pending" id="step-judge" data-node="judge">
+            <div class="step-header">
+              <span class="step-num">4</span>
+              <span class="step-time" id="time-judge">—</span>
+            </div>
+            <div class="step-name">Judge</div>
+            <div class="step-desc">Independent scoring</div>
+          </div>
+
+          <div class="step-item pending" id="step-rewrite" data-node="rewrite">
+            <div class="step-header">
+              <span class="step-num">5</span>
+              <span class="step-time" id="time-rewrite">—</span>
+            </div>
+            <div class="step-name">Rewrite</div>
+            <div class="step-desc">Evidence-backed correction</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skeleton Loader -->
+    <section id="skeletonWrap" class="skeleton-wrap" aria-hidden="true">
+      <div class="skeleton-line" style="width: 45%;"></div>
+      <div class="skeleton-line" style="width: 85%;"></div>
+      <div class="skeleton-line" style="width: 65%;"></div>
+      <div class="skeleton-line" style="width: 90%;"></div>
+    </section>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="results-section" aria-label="Verification Results">
+
+      <!-- 1. Answer Freshness & Execution Metrics -->
+      <section class="overview-grid">
+        <div class="card score-hero-card">
+          <div id="scoreConicRing" class="score-conic-ring">
+            <div class="score-center-text">
+              <div id="scoreNumber" class="score-number">—</div>
+              <div class="score-max">/ 100</div>
+            </div>
+          </div>
+          <div class="score-chip-wrap">
+            <span id="scoreChip" class="chip chip-warn">NOT SCORED</span>
+          </div>
+          <p id="scoreSummaryDesc" class="score-summary-desc">Evaluation based on live web evidence</p>
+        </div>
+
+        <div class="card metrics-card">
+          <div class="metrics-header">
+            <div>
+              <h3>Answer Freshness Summary</h3>
+              <p>Breakdown of extracted claims, cached memory hits, and graph execution timings</p>
+            </div>
+            <div class="export-actions-wrap">
+              <button id="exportJsonBtn" class="btn-export" type="button" title="Download JSON Audit Report">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                JSON
+              </button>
+              <button id="copyMarkdownBtn" class="btn-export" type="button" title="Copy Markdown Summary">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+                Markdown
+              </button>
+              <button id="printReportBtn" class="btn-export" type="button" title="Print or Save PDF Certificate">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                Print
+              </button>
+            </div>
+          </div>
+
+          <div class="metrics-stats-grid">
+            <div class="metric-box">
+              <span class="metric-label">Claims Checked</span>
+              <span id="metricClaimsCount" class="metric-val">0</span>
+              <span class="metric-pill">Extracted</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Memory Hits</span>
+              <span id="metricCacheHits" class="metric-val">0</span>
+              <span class="metric-pill">⚡ Cached evidence</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Total Latency</span>
+              <span id="metricTotalLatency" class="metric-val">0ms</span>
+              <span class="metric-pill">5 graph nodes</span>
+            </div>
+          </div>
+
+          <div class="arch-details-toggle">
+            <div id="archDetailsSummary" class="arch-details-summary" role="button" tabindex="0">
+              <span>View Gateway &amp; Provider Routing</span>
+              <span id="archToggleIcon">▼</span>
+            </div>
+            <div id="archDetailsContent" class="arch-details-content" style="display:none;">
+              <table class="arch-table">
+                <tbody>
+                  <tr>
+                    <td>Extract</td>
+                    <td>LLM Gateway &rarr; extract model</td>
+                    <td id="archTraceExtract">—</td>
+                  </tr>
+                  <tr>
+                    <td>Search</td>
+                    <td>Tavily Search API + In-Memory TTL Cache</td>
+                    <td id="archTraceSearch">—</td>
+                  </tr>
+                  <tr>
+                    <td>Analyze</td>
+                    <td>LLM Gateway &rarr; analyst model</td>
+                    <td id="archTraceAnalyze">—</td>
+                  </tr>
+                  <tr>
+                    <td>Judge</td>
+                    <td>Independent Judge Model &rarr; scoring</td>
+                    <td id="archTraceJudge">—</td>
+                  </tr>
+                  <tr>
+                    <td>Rewrite</td>
+                    <td>Local / Fallback Model &rarr; citation correction</td>
+                    <td id="archTraceRewrite">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Dedicated Original Answer Panel -->
+      <section class="card">
+        <div class="card-title">Original Answer</div>
+        <div id="origAnswerText" class="original-answer-box"></div>
+      </section>
+
+      <!-- 3. Claim-by-Claim Verification -->
+      <section class="card">
+        <div class="card-title-row">
+          <div class="card-title">
+            <span>Claim-by-Claim Verification</span>
+            <span id="claimsCountBadge" class="status-badge" style="font-size:0.7rem;">0 claims</span>
+          </div>
+          <div class="claims-filter-group" role="tablist" aria-label="Filter claims">
+            <button class="filter-btn active" data-filter="all" type="button">All</button>
+            <button class="filter-btn" data-filter="fresh" type="button">Fresh</button>
+            <button class="filter-btn" data-filter="stale" type="button">Stale</button>
+            <button class="filter-btn" data-filter="unverifiable" type="button">Unverifiable</button>
+          </div>
+        </div>
+
+        <div id="claimsList" class="claims-list"></div>
+
+        <!-- Optional Stable Facts -->
+        <div id="stableFactsBlock" class="stable-facts-block hidden">
+          <div class="card-title" style="margin-bottom:6px;">Stable Facts (Not Checked)</div>
           <div id="stableFactsList"></div>
         </div>
-      </div>
+      </section>
 
-      <!-- 4. Original vs Verified -->
-      <div class="card">
-        <div class="section-title">Original vs Verified Answer</div>
-        <div class="diff-cols">
-          <div>
-            <div class="diff-label">Original</div>
-            <div class="diff-box" id="diffOriginal"></div>
-          </div>
-          <div>
-            <div class="diff-label">Corrected</div>
-            <div class="diff-box" id="diffRewritten"></div>
+      <!-- 4. Original vs Corrected Answer -->
+      <section class="card">
+        <div class="diff-control-bar">
+          <div class="card-title">Original vs Corrected Answer</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="segmented-control" role="tablist">
+              <button id="viewDiffBtn" class="segment-btn active" type="button">Diff View</button>
+              <button id="viewRewrittenBtn" class="segment-btn" type="button">Corrected</button>
+              <button id="viewOriginalBtn" class="segment-btn" type="button">Original</button>
+            </div>
+            <button id="copyRewrittenBtn" class="btn-copy" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+              <span id="copyBtnText">Copy Corrected Answer</span>
+            </button>
           </div>
         </div>
-        <div style="margin-top:0.75rem;">
-          <button class="secondary sm" id="btnCopy">Copy Corrected Answer</button>
+        <div id="comparisonContentBox" class="comparison-content-box"></div>
+      </section>
+
+      <!-- 5. Dedicated Evidence & Sources Panel -->
+      <section class="card">
+        <div class="card-title">Evidence &amp; Sources</div>
+        <div id="sourcesList" class="sources-list-container"></div>
+      </section>
+
+      <!-- 6. Developer Execution Details (Collapsible) -->
+      <section class="card">
+        <div class="card-title-row">
+          <div class="card-title">Execution Diagnostics</div>
+          <button id="toggleRawTraceBtn" class="btn-toggle" type="button">
+            View Raw Trace JSON
+          </button>
         </div>
-      </div>
+        <pre id="rawTraceBox" class="raw-json-block hidden"></pre>
+      </section>
 
-      <!-- 5. Verification Process -->
-      <div class="card">
-        <div class="section-title">Verification Process</div>
-        <div id="stepper" class="stepper" style="margin-bottom:1rem;"></div>
-        <button class="secondary sm" id="btnTrace">View Execution Details</button>
-        <pre id="traceDetail" class="hidden" style="margin-top:0.75rem;"></pre>
-      </div>
-
-      <!-- 6. Evidence & Sources -->
-      <div class="card">
-        <div class="section-title">Evidence &amp; Sources</div>
-        <div id="sourcesList" class="sources-list"></div>
-      </div>
-
-    </div>
-
-    <!-- Raw JSON fallback -->
-    <div class="card" id="rawCard" style="display:none;">
-      <div class="section-title">Raw Response</div>
-      <pre id="outputLog"></pre>
     </div>
   </div>
 
-<script>
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  <footer class="app-footer">
+    <span>StaleCheck · PS6 Stale-Answer Detector</span>
+    <span>Powered by <strong>Tavily Search API</strong> &amp; <strong>FastAPI LangGraph Pipeline</strong></span>
+  </footer>
 
-  async function checkHealth() {
-    try {
-      const r = await fetch('/api/health');
-      const d = await r.json();
-      $('statusBar').innerHTML = `<span>Status: <strong>${esc(d.status)}</strong></span> | <span>Tavily: ${d.env.TAVILY_API_KEY ? '✅' : '❌'}</span> | <span>LLM: ${(d.env.BIFROST_API_KEY || d.env.OPENAI_API_KEY) ? '✅' : '❌'}</span>`;
-    } catch { $('statusBar').innerHTML = `<span style="color:var(--accent-stale)">Status: Disconnected</span>`; }
-  }
-  checkHealth();
+  <script>
+    (function() {
+      'use strict';
 
-  function freshnessLabel(score) {
-    if (score >= 70) return { chip: '🟢 FRESH', cls: 'chip-fresh', caption: 'Answer looks up to date' };
-    if (score >= 30) return { chip: '🟡 NEEDS CONTEXT', cls: 'chip-warn', caption: 'Answer requires verification' };
-    return { chip: '🔴 STALE', cls: 'chip-stale', caption: 'Answer contains outdated information' };
-  }
+      /* --- PRESET DEMO SCENARIOS --- */
+      const PRESETS = {
+        pricing: {
+          text: "OpenAI GPT-4 costs $30 per million input tokens. ChatGPT Plus subscription costs $19 per month.",
+          data: {
+            "answer": "OpenAI GPT-4 costs $30 per million input tokens. ChatGPT Plus subscription costs $19 per month.",
+            "overall": 18,
+            "cache_hits": 1,
+            "rewritten": "OpenAI GPT-4 costs $2.50 per million input tokens ([source](https://openai.com/pricing)). ChatGPT Plus subscription costs $20 per month ([source](https://openai.com/chatgpt/pricing)).",
+            "trace": [
+              {"node": "extract", "ms": 780},
+              {"node": "search", "ms": 2340},
+              {"node": "analyze", "ms": 2890},
+              {"node": "judge", "ms": 2100},
+              {"node": "rewrite", "ms": 1420}
+            ],
+            "claims": [
+              {
+                "id": 1,
+                "title": "GPT-4 Token Pricing",
+                "text": "OpenAI GPT-4 costs $30 per million input tokens",
+                "category": "pricing",
+                "verdict": "Stale",
+                "score": 15,
+                "current_fact": "Current GPT-4 pricing has been reduced to $2.50 per 1M input tokens.",
+                "reason": "OpenAI official pricing documentation confirms lower rates.",
+                "sources": ["https://openai.com/pricing"],
+                "evidence": [
+                  {"title": "OpenAI Pricing", "url": "https://openai.com/pricing", "date": "2026-08-01", "snippet": "GPT-4 pricing updated: $2.50 per 1M prompt tokens."}
+                ],
+                "cached": false
+              },
+              {
+                "id": 2,
+                "title": "ChatGPT Plus Pricing",
+                "text": "ChatGPT Plus subscription costs $19 per month",
+                "category": "pricing",
+                "verdict": "Stale",
+                "score": 20,
+                "current_fact": "ChatGPT Plus costs $20 per month.",
+                "reason": "Pricing page lists $20 per month, not $19.",
+                "sources": ["https://openai.com/chatgpt/pricing"],
+                "evidence": [
+                  {"title": "ChatGPT Plus Subscriptions", "url": "https://openai.com/chatgpt/pricing", "date": "2026-09-10", "snippet": "ChatGPT Plus: $20/month billed monthly."}
+                ],
+                "cached": true
+              }
+            ]
+          }
+        },
+        version: {
+          text: "Node.js 16 is the active Long Term Support release. React 17 is the recommended production version.",
+          data: {
+            "answer": "Node.js 16 is the active Long Term Support release. React 17 is the recommended production version.",
+            "overall": 12,
+            "cache_hits": 0,
+            "rewritten": "Node.js 16 has reached End-of-Life; modern LTS releases include Node.js 20 and 22 ([source](https://nodejs.org/en/about/previous-releases)). React 19 is the current major production release ([source](https://react.dev/blog)).",
+            "trace": [
+              {"node": "extract", "ms": 650},
+              {"node": "search", "ms": 1900},
+              {"node": "analyze", "ms": 2700},
+              {"node": "judge", "ms": 1800},
+              {"node": "rewrite", "ms": 1300}
+            ],
+            "claims": [
+              {
+                "id": 1,
+                "title": "Node.js Active LTS",
+                "text": "Node.js 16 is the active Long Term Support release",
+                "category": "version",
+                "verdict": "Stale",
+                "score": 8,
+                "current_fact": "Node.js 16 reached end-of-life in September 2023; Node.js 20/22 are active LTS.",
+                "reason": "Official Node.js release schedule confirms version 16 is obsolete.",
+                "sources": ["https://nodejs.org/en/about/previous-releases"],
+                "evidence": [
+                  {"title": "Node.js Release Schedule", "url": "https://nodejs.org/en/about/previous-releases", "date": "2026-04-12", "snippet": "Node.js 16 maintenance ended September 2023."}
+                ],
+                "cached": false
+              },
+              {
+                "id": 2,
+                "title": "React Production Version",
+                "text": "React 17 is the recommended production version",
+                "category": "version",
+                "verdict": "Stale",
+                "score": 15,
+                "current_fact": "React 19 is the current production release.",
+                "reason": "React official website and documentation cite React 19.",
+                "sources": ["https://react.dev/blog"],
+                "evidence": [
+                  {"title": "React Blog - Release Notes", "url": "https://react.dev/blog", "date": "2026-06-20", "snippet": "React 19 is now available with Actions, Server Components, and more."}
+                ],
+                "cached": false
+              }
+            ]
+          }
+        },
+        fresh: {
+          text: "GPT-4o was introduced as OpenAI's flagship omni-modal model. Python 3.12 and 3.13 are modern active releases.",
+          data: {
+            "answer": "GPT-4o was introduced as OpenAI's flagship omni-modal model. Python 3.12 and 3.13 are modern active releases.",
+            "overall": 94,
+            "cache_hits": 2,
+            "rewritten": "GPT-4o was introduced as OpenAI's flagship omni-modal model. Python 3.12 and 3.13 are modern active releases.",
+            "trace": [
+              {"node": "extract", "ms": 720},
+              {"node": "search", "ms": 950},
+              {"node": "analyze", "ms": 2100},
+              {"node": "judge", "ms": 1600},
+              {"node": "rewrite", "ms": 900}
+            ],
+            "claims": [
+              {
+                "id": 1,
+                "title": "GPT-4o Omni-Modal",
+                "text": "GPT-4o was introduced as OpenAI's flagship omni-modal model",
+                "category": "other",
+                "verdict": "Fresh",
+                "score": 96,
+                "current_fact": "Confirmed current flagship multimodal release.",
+                "reason": "Confirmed by OpenAI documentation and live media announcements.",
+                "sources": ["https://openai.com/index/hello-gpt-4o/"],
+                "evidence": [
+                  {"title": "Hello GPT-4o", "url": "https://openai.com/index/hello-gpt-4o/", "date": "2026-05-13", "snippet": "GPT-4o is our flagship model integrating audio, vision, and text."}
+                ],
+                "cached": true
+              },
+              {
+                "id": 2,
+                "title": "Python Supported Releases",
+                "text": "Python 3.12 and 3.13 are modern active releases",
+                "category": "version",
+                "verdict": "Fresh",
+                "score": 92,
+                "current_fact": "Python 3.12 and 3.13 are active supported versions.",
+                "reason": "python.org confirms active support lifecycle.",
+                "sources": ["https://devguide.python.org/versions/"],
+                "evidence": [
+                  {"title": "Python Status of Branches", "url": "https://devguide.python.org/versions/", "date": "2026-10-05", "snippet": "3.13 is the active bugfix release, 3.12 in security status."}
+                ],
+                "cached": true
+              }
+            ]
+          }
+        },
+        unverifiable: {
+          text: "The annual software tax for micro-agencies in New Atlantis is fixed at exactly 42 solar credits per year.",
+          data: {
+            "answer": "The annual software tax for micro-agencies in New Atlantis is fixed at exactly 42 solar credits per year.",
+            "overall": 40,
+            "cache_hits": 0,
+            "rewritten": "The claim regarding a software tax in New Atlantis could not be verified by live web sources.",
+            "trace": [
+              {"node": "extract", "ms": 680},
+              {"node": "search", "ms": 3200},
+              {"node": "analyze", "ms": 2500},
+              {"node": "judge", "ms": 1900},
+              {"node": "rewrite", "ms": 1200}
+            ],
+            "claims": [
+              {
+                "id": 1,
+                "title": "New Atlantis Software Tax",
+                "text": "The annual software tax for micro-agencies in New Atlantis is fixed at exactly 42 solar credits per year",
+                "category": "law",
+                "verdict": "Unverifiable",
+                "score": 40,
+                "current_fact": "",
+                "reason": "Tavily search returned no verified governmental or municipal documentation.",
+                "sources": [],
+                "evidence": [],
+                "cached": false
+              }
+            ]
+          }
+        },
+        nova_spec: {
+          text: "Nova SDK 4.2 is the latest version, first released in March 2024, and its Pro plan costs $19 per month.",
+          data: {
+            "answer": "Nova SDK 4.2 is the latest version, first released in March 2024, and its Pro plan costs $19 per month.",
+            "overall": 52,
+            "cache_hits": 0,
+            "rewritten": "Nova SDK 4.2 is the latest version, first released in March 2024, and its Pro plan costs $24 per month ([source](https://example.com/nova/pricing)).",
+            "stable_facts": ["Nova SDK was first released in March 2024."],
+            "trace": [
+              {"node": "extract", "ms": 810},
+              {"node": "search", "ms": 2240},
+              {"node": "analyze", "ms": 3020},
+              {"node": "judge", "ms": 2110},
+              {"node": "rewrite", "ms": 1390}
+            ],
+            "claims": [
+              {
+                "id": 1,
+                "title": "Nova SDK Latest Version",
+                "text": "Nova SDK 4.2 is the latest version.",
+                "category": "version",
+                "verdict": "Fresh",
+                "score": 93,
+                "current_fact": "Nova SDK 4.2 is the latest release listed.",
+                "reason": "The release notes dated 2026-09-15 list 4.2 as the newest release.",
+                "sources": ["https://example.com/nova/releases"],
+                "evidence": [
+                  {"title": "Nova SDK Release Notes", "url": "https://example.com/nova/releases", "date": "2026-09-15", "snippet": "Nova SDK 4.2 released with performance improvements and new APIs."}
+                ],
+                "cached": false
+              },
+              {
+                "id": 2,
+                "title": "Nova SDK Pro Pricing",
+                "text": "The Nova SDK Pro plan costs $19 per month.",
+                "category": "pricing",
+                "verdict": "Stale",
+                "score": 12,
+                "current_fact": "The Nova SDK Pro plan costs $24 per month.",
+                "reason": "The pricing page dated 2026-10-02 lists $24 per month, not $19.",
+                "sources": ["https://example.com/nova/pricing"],
+                "evidence": [
+                  {"title": "Nova SDK Pricing", "url": "https://example.com/nova/pricing", "date": "2026-10-02", "snippet": "Pro plan: $24 per month, billed monthly."}
+                ],
+                "cached": false
+              }
+            ]
+          }
+        },
+        no_claims: {
+          text: "The quick brown fox jumps over the lazy dog. Programming is an interesting problem-solving endeavor.",
+          data: {
+            "answer": "The quick brown fox jumps over the lazy dog. Programming is an interesting problem-solving endeavor.",
+            "overall": null,
+            "cache_hits": 0,
+            "rewritten": "The quick brown fox jumps over the lazy dog. Programming is an interesting problem-solving endeavor.",
+            "stable_facts": ["The quick brown fox jumps over the lazy dog."],
+            "trace": [
+              {"node": "extract", "ms": 420}
+            ],
+            "claims": []
+          }
+        }
+      };
 
-  function verdictBadge(verdict) {
-    if (verdict === 'Fresh') return `<span class="verdict-badge badge-fresh">Fresh</span>`;
-    if (verdict === 'Stale') return `<span class="verdict-badge badge-stale">Stale</span>`;
-    return `<span class="verdict-badge badge-unverifiable">Needs Context</span>`;
-  }
+      /* --- APPLICATION STATE --- */
+      let currentMode = 'check'; // 'check' or 'ask'
+      let isMockMode = new URLSearchParams(window.location.search).get('mock') === '1';
+      let isRunning = false;
+      let lastResultData = null;
+      let currentFilter = 'all'; // 'all', 'fresh', 'stale', 'unverifiable'
+      let currentAnswerView = 'diff'; // 'diff', 'rewritten', 'original'
 
-  function buildEvidenceHTML(ev) {
-    if (!ev || !ev.length) return '<p style="color:var(--text-muted);font-size:0.82rem;">No evidence retrieved.</p>';
-    return ev.map(e => `
-      <div class="evidence-item">
-        <a href="${esc(e.url||'')}" target="_blank" rel="noopener">${esc(e.title||e.url)}</a>
-        ${e.date ? `<div class="evidence-date">📅 ${esc(e.date)}</div>` : ''}
-        ${e.snippet ? `<div class="evidence-snippet">"${esc(e.snippet)}"</div>` : ''}
-      </div>`).join('');
-  }
+      /* --- DOM REFERENCES --- */
+      const $ = id => document.getElementById(id);
+      const tabCheck = $('tabCheck');
+      const tabAsk = $('tabAsk');
+      const mainInput = $('mainInput');
+      const loadExampleBtn = $('loadExampleBtn');
+      const clearInputBtn = $('clearInputBtn');
+      const presetScenarioSelect = $('presetScenarioSelect');
+      const runBtn = $('runBtn');
+      const runBtnText = $('runBtnText');
+      const modeHintText = $('modeHintText');
+      const mockToggleBtn = $('mockToggleBtn');
+      const mockStatusText = $('mockStatusText');
+      const mockModeBanner = $('mockModeBanner');
+      const backendHealthBadge = $('backendHealthBadge');
+      const backendHealthText = $('backendHealthText');
+      const alertBanner = $('alertBanner');
+      const alertMessageText = $('alertMessageText');
+      const stepperContainer = $('stepperContainer');
+      const skeletonWrap = $('skeletonWrap');
+      const resultsSection = $('resultsSection');
+      const scoreConicRing = $('scoreConicRing');
+      const scoreNumber = $('scoreNumber');
+      const scoreChip = $('scoreChip');
+      const scoreSummaryDesc = $('scoreSummaryDesc');
+      const metricClaimsCount = $('metricClaimsCount');
+      const metricCacheHits = $('metricCacheHits');
+      const metricTotalLatency = $('metricTotalLatency');
+      const origAnswerText = $('origAnswerText');
+      const claimsCountBadge = $('claimsCountBadge');
+      const claimsList = $('claimsList');
+      const stableFactsBlock = $('stableFactsBlock');
+      const stableFactsList = $('stableFactsList');
+      const comparisonContentBox = $('comparisonContentBox');
+      const copyRewrittenBtn = $('copyRewrittenBtn');
+      const copyBtnText = $('copyBtnText');
+      const viewDiffBtn = $('viewDiffBtn');
+      const viewRewrittenBtn = $('viewRewrittenBtn');
+      const viewOriginalBtn = $('viewOriginalBtn');
+      const sourcesList = $('sourcesList');
+      const toggleRawTraceBtn = $('toggleRawTraceBtn');
+      const rawTraceBox = $('rawTraceBox');
+      const exportJsonBtn = $('exportJsonBtn');
+      const copyMarkdownBtn = $('copyMarkdownBtn');
+      const printReportBtn = $('printReportBtn');
+      const archDetailsSummary = $('archDetailsSummary');
+      const archDetailsContent = $('archDetailsContent');
+      const archToggleIcon = $('archToggleIcon');
+      const filterBtns = document.querySelectorAll('.filter-btn');
 
-  function renderResults(data) {
-    $('resultsArea').classList.remove('hidden');
-    $('rawCard').style.display = 'none';
+      const PIPELINE_NODES = ['extract', 'search', 'analyze', 'judge', 'rewrite'];
 
-    // 1. Original
-    $('origAnswer').textContent = data.answer || '';
-
-    // 2. Freshness
-    const score = data.overall;
-    const { chip, cls, caption } = score == null ? { chip: 'NOT SCORED', cls: 'chip-warn', caption: 'No time-sensitive claims were found' } : freshnessLabel(score);
-    $('freshnessScore').innerHTML = `${score == null ? '—' : score} <span>/ 100</span>`;
-    $('freshnessChip').className = `chip ${cls}`;
-    $('freshnessChip').textContent = chip;
-    $('freshnessCaption').textContent = caption;
-
-    // 3. Claims
-    const claims = data.claims || [];
-    const grid = $('claimsGrid');
-    grid.innerHTML = '';
-    claims.forEach((c, i) => {
-      const panelId = `ep-${c.id}`;
-      const title = c.title || c.text || `Claim ${i+1}`;
-      const div = document.createElement('div');
-      div.className = 'claim-card';
-      div.innerHTML = `
-        <div class="claim-header">
-          <span class="claim-num">Claim ${String(i+1).padStart(2,'0')}</span>
-          <span class="claim-title">${esc(title)}</span>
-          ${verdictBadge(c.verdict)}
-          <span class="claim-score">Score: ${c.score}/100</span>
-        </div>
-        <div class="claim-text">${esc(c.text)}</div>
-        <button class="toggle-btn" onclick="togglePanel('${panelId}',this)">▶ View Evidence</button>
-        <div class="evidence-panel" id="${panelId}">
-          ${c.current_fact ? `<div class="evidence-label">Verified Fact</div><p style="margin-bottom:0.6rem;font-size:0.88rem;">${esc(c.current_fact)}</p>` : ''}
-          ${c.reason ? `<div class="evidence-label">Reason</div><p style="margin-bottom:0.6rem;font-size:0.85rem;color:var(--text-muted);">${esc(c.reason)}</p>` : ''}
-          <div class="evidence-label">Sources</div>
-          ${buildEvidenceHTML(c.evidence && c.evidence.length ? c.evidence : (c.sources||[]).map(u=>({url:u,title:u})))}
-        </div>`;
-      grid.appendChild(div);
-    });
-
-    // Stable facts
-    const sf = data.stable_facts || [];
-    if (sf.length) {
-      $('stableFactsBlock').classList.remove('hidden');
-      $('stableFactsList').innerHTML = sf.map(f => `<div class="stable-fact-item">📌 ${esc(f)}</div>`).join('');
-    } else {
-      $('stableFactsBlock').classList.add('hidden');
-    }
-
-    // 4. Diff
-    $('diffOriginal').textContent = data.answer || '';
-    $('diffRewritten').innerHTML = highlightDiff(data.answer||'', data.rewritten||'');
-    $('btnCopy').onclick = () => navigator.clipboard.writeText(data.rewritten || data.answer || '').then(() => { $('btnCopy').textContent = 'Copied!'; setTimeout(()=>$('btnCopy').textContent='Copy Corrected Answer',1500); });
-
-    // 5. Stepper
-    const stepNames = { extract:'Extract', search:'Search', analyze:'Analyze', judge:'Judge', rewrite:'Rewrite' };
-    const traceMap = {};
-    (data.trace||[]).forEach(t => traceMap[t.node] = t.ms);
-    const stepOrder = ['extract','search','analyze','judge','rewrite'];
-    const executedNodes = new Set((data.trace||[]).map(t=>t.node));
-    $('stepper').innerHTML = stepOrder.filter(n => executedNodes.has(n)).map((n,i,arr) => `
-      <div class="step">
-        <div class="step-dot">${i+1}</div>
-        <div class="step-info">
-          <div class="step-name">${stepNames[n]||n}</div>
-          <div class="step-ms">${traceMap[n]!==undefined ? traceMap[n]+'ms' : '—'}</div>
-        </div>
-        ${i < arr.length-1 ? '<div class="step-line"></div>' : ''}
-      </div>`).join('');
-    $('traceDetail').textContent = JSON.stringify(data.trace||[], null, 2);
-    $('btnTrace').onclick = function() {
-      const el = $('traceDetail');
-      const open = !el.classList.contains('hidden');
-      el.classList.toggle('hidden', open);
-      this.textContent = open ? 'View Execution Details' : 'Hide Execution Details';
-    };
-
-    // 6. Sources — merge & deduplicate by URL
-    const seenUrls = new Set();
-    const allSources = [];
-    (data.claims||[]).forEach(c => {
-      (c.evidence||[]).forEach(e => {
-        if (e.url && !seenUrls.has(e.url)) { seenUrls.add(e.url); allSources.push(e); }
-      });
-      (c.sources||[]).forEach(url => {
-        if (!seenUrls.has(url)) { seenUrls.add(url); allSources.push({url, title:url}); }
-      });
-    });
-    const sl = $('sourcesList');
-    if (allSources.length) {
-      sl.innerHTML = allSources.map((s,i) => {
-        const detId = `sd-${i}`;
-        return `<div class="source-row">
-          <div class="source-title">Source ${i+1}: ${esc(s.title||s.url)}</div>
-          <div class="source-url"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></div>
-          ${(s.date||s.snippet) ? `<button class="toggle-btn" style="margin-top:0.3rem;" onclick="togglePanel('${detId}',this)">▶ View Details</button>
-          <div class="source-details" id="${detId}">
-            ${s.date ? `<div class="evidence-date">📅 ${esc(s.date)}</div>` : ''}
-            ${s.snippet ? `<div class="evidence-snippet">"${esc(s.snippet)}"</div>` : ''}
-          </div>` : ''}
-        </div>`;
-      }).join('');
-    } else {
-      sl.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No sources retrieved.</p>';
-    }
-  }
-
-  function togglePanel(id, btn) {
-    const el = document.getElementById(id);
-    const open = el.classList.toggle('open');
-    btn.textContent = (open ? '▼ ' : '▶ ') + btn.textContent.slice(2);
-  }
-
-  function highlightDiff(orig, rewritten) {
-    if (!orig || !rewritten || orig === rewritten) return esc(rewritten||orig||'');
-    const oWords = orig.split(/(\s+)/);
-    const rWords = rewritten.split(/(\s+)/);
-    const oSet = new Set(oWords);
-    return rWords.map(w => oSet.has(w) ? esc(w) : `<mark>${esc(w)}</mark>`).join('');
-  }
-
-  function showError(msg) {
-    $('resultsArea').classList.add('hidden');
-    $('rawCard').style.display = '';
-    $('outputLog').textContent = 'Error: ' + msg;
-    $('streamEvents').textContent = 'Error: ' + msg;
-  }
-
-  async function runCheck(url, body, label) {
-    $('streamEvents').textContent = `Running ${label}...`;
-    $('resultsArea').classList.add('hidden');
-    $('rawCard').style.display = 'none';
-    try {
-      const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text: body}) });
-      const data = await res.json();
-      if (!res.ok) { showError(data.error || res.statusText); return; }
-      $('streamEvents').textContent = `Done — Overall Freshness: ${data.overall ?? 'N/A'}/100`;
-      renderResults(data);
-    } catch(e) { showError(e.message); }
-  }
-
-  $('btnCheck').onclick = () => runCheck('/api/check', $('input-text').value, '/api/check');
-  $('btnAsk').onclick = () => runCheck('/api/ask', $('input-text').value, '/api/ask');
-  $('btnHealth').onclick = checkHealth;
-
-  $('btnStream').onclick = async () => {
-    const text = $('input-text').value;
-    $('streamEvents').textContent = 'Opening SSE stream...';
-    $('resultsArea').classList.add('hidden');
-    $('rawCard').style.display = 'none';
-    try {
-    const response = await fetch('/api/check/stream', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text}) });
-    if (!response.ok) { const data = await response.json(); throw new Error(data.error || response.statusText); }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const blocks = buffer.split('\n\n');
-      buffer = blocks.pop();
-      for (const block of blocks) {
-        const me = block.match(/event:\s*(\w+)/);
-        const md = block.match(/data:\s*([\s\S]+)/);
-        if (!me || !md) continue;
-        const ev = me[1];
-        let data;
-        try { data = JSON.parse(md[1]); } catch { continue; }
-        if (ev === 'node') $('streamEvents').textContent = `Node: ${data.node} (${data.ms}ms)`;
-        else if (ev === 'done') { $('streamEvents').textContent = `Done — Overall Freshness: ${data.overall}/100`; renderResults(data); }
-        else if (ev === 'error') showError(data.message);
+      /* --- SECURITY HELPERS --- */
+      function escapeHTML(str) {
+        if (str == null) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
       }
-    }
-    } catch (e) { showError(e.message); }
-  };
 
-  // ?mock=1 support for offline testing
-  const urlParams = new URLSearchParams(location.search);
-  if (urlParams.get('mock') === '1') {
-    const mockData = {"answer":"Nova SDK 4.2 is the latest version, first released in March 2024, and its Pro plan costs $19 per month.","overall":52,"cache_hits":0,"rewritten":"Nova SDK 4.2 is the latest version, first released in March 2024, and its Pro plan costs $24 per month ([source](https://example.com/nova/pricing)).","stable_facts":["Nova SDK was first released in March 2024."],"trace":[{"node":"extract","ms":810},{"node":"search","ms":2240},{"node":"analyze","ms":3020},{"node":"judge","ms":2110},{"node":"rewrite","ms":1390}],"claims":[{"id":1,"title":"Nova SDK Latest Version","text":"Nova SDK 4.2 is the latest version.","category":"version","verdict":"Fresh","score":93,"current_fact":"Nova SDK 4.2 is the latest release listed.","reason":"The release notes dated 2026-09-15 list 4.2 as the newest release.","sources":["https://example.com/nova/releases"],"evidence":[{"title":"Nova SDK Release Notes","url":"https://example.com/nova/releases","date":"2026-09-15","snippet":"Nova SDK 4.2 released with performance improvements and new APIs."}],"cached":false},{"id":2,"title":"Nova SDK Pro Pricing","text":"The Nova SDK Pro plan costs $19 per month.","category":"pricing","verdict":"Stale","score":12,"current_fact":"The Nova SDK Pro plan costs $24 per month.","reason":"The pricing page dated 2026-10-02 lists $24 per month, not $19.","sources":["https://example.com/nova/pricing"],"evidence":[{"title":"Nova SDK Pricing","url":"https://example.com/nova/pricing","date":"2026-10-02","snippet":"Pro plan: $24 per month, billed monthly."}],"cached":false}]};
-    setTimeout(() => { $('input-text').value = mockData.answer; $('streamEvents').textContent = 'Mock data loaded'; renderResults(mockData); }, 100);
-  }
-</script>
+      function sanitizeUrl(url) {
+        if (!url) return '#';
+        const trimmed = String(url).trim();
+        if (/^https?:\/\//i.test(trimmed)) {
+          return escapeHTML(trimmed);
+        }
+        return '#';
+      }
+
+      function extractHostname(url) {
+        try {
+          const parsed = new URL(url);
+          return parsed.hostname.replace(/^www\./, '');
+        } catch {
+          return 'source';
+        }
+      }
+
+      /* --- ALERTS & NOTIFICATIONS --- */
+      function showAlert(message, type = 'error') {
+        alertBanner.className = `alert-banner ${type}`;
+        alertMessageText.textContent = message;
+        alertBanner.style.display = 'flex';
+      }
+
+      function hideAlert() {
+        alertBanner.className = 'alert-banner';
+        alertBanner.style.display = 'none';
+        alertMessageText.textContent = '';
+      }
+
+      /* --- MOCK MODE HANDLING --- */
+      function updateMockBadge() {
+        if (isMockMode) {
+          mockToggleBtn.classList.add('active');
+          mockStatusText.textContent = 'On';
+          mockModeBanner.style.display = 'flex';
+        } else {
+          mockToggleBtn.classList.remove('active');
+          mockStatusText.textContent = 'Off';
+          mockModeBanner.style.display = 'none';
+        }
+      }
+
+      mockToggleBtn.addEventListener('click', () => {
+        isMockMode = !isMockMode;
+        updateMockBadge();
+        const url = new URL(window.location);
+        if (isMockMode) {
+          url.searchParams.set('mock', '1');
+        } else {
+          url.searchParams.delete('mock');
+        }
+        window.history.replaceState({}, '', url);
+      });
+
+      /* --- BACKEND HEALTH MONITORING --- */
+      async function checkBackendHealth() {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2500);
+          const res = await fetch('/api/health', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            const tavilyOk = data.env && data.env.TAVILY_API_KEY;
+            const llmOk = data.env && (data.env.BIFROST_API_KEY || data.env.OPENAI_API_KEY);
+            backendHealthBadge.className = 'status-badge online';
+            backendHealthText.textContent = `Gateway Online (${tavilyOk ? 'Tavily ✅' : 'Tavily ⚠️'}, ${llmOk ? 'LLM ✅' : 'LLM ⚠️'})`;
+          } else {
+            throw new Error();
+          }
+        } catch {
+          backendHealthBadge.className = 'status-badge offline';
+          backendHealthText.textContent = 'Gateway: Offline (Mock Ready)';
+          if (new URLSearchParams(window.location.search).get('mock') == null) {
+            isMockMode = true;
+            updateMockBadge();
+          }
+        }
+      }
+
+      /* --- MODE SWITCHING --- */
+      function setMode(mode) {
+        currentMode = mode;
+        if (mode === 'check') {
+          tabCheck.classList.add('active');
+          tabCheck.setAttribute('aria-selected', 'true');
+          tabAsk.classList.remove('active');
+          tabAsk.setAttribute('aria-selected', 'false');
+          mainInput.placeholder = 'Enter or paste an AI-generated answer to verify its freshness against live web sources (3 to 6000 characters)…';
+          modeHintText.querySelector('span').textContent = 'StaleCheck audits volatile claims like pricing, version releases, leadership, and laws.';
+        } else {
+          tabAsk.classList.add('active');
+          tabAsk.setAttribute('aria-selected', 'true');
+          tabCheck.classList.remove('active');
+          tabCheck.setAttribute('aria-selected', 'false');
+          mainInput.placeholder = 'Ask a question to the local LLM. It will generate an answer first, then StaleCheck audits the answer…';
+          modeHintText.querySelector('span').textContent = 'The LLM answers via the local gateway, then all extracted claims are live-verified.';
+        }
+        hideAlert();
+      }
+
+      tabCheck.addEventListener('click', () => setMode('check'));
+      tabAsk.addEventListener('click', () => setMode('ask'));
+
+      /* --- PRESET SCENARIO HANDLING --- */
+      presetScenarioSelect.addEventListener('change', () => {
+        const val = presetScenarioSelect.value;
+        if (val && PRESETS[val]) {
+          mainInput.value = PRESETS[val].text;
+          mainInput.focus();
+          hideAlert();
+        }
+      });
+
+      loadExampleBtn.addEventListener('click', () => {
+        if (currentMode === 'check') {
+          presetScenarioSelect.value = 'nova_spec';
+          mainInput.value = PRESETS.nova_spec.text;
+        } else {
+          mainInput.value = 'What is the current pricing of GPT-4 and what is the latest stable Python release?';
+        }
+        mainInput.focus();
+        hideAlert();
+      });
+
+      clearInputBtn.addEventListener('click', () => {
+        mainInput.value = '';
+        presetScenarioSelect.value = '';
+        hideAlert();
+        mainInput.focus();
+      });
+
+      /* --- STEPPER VISUALIZATION --- */
+      function resetStepper() {
+        stepperContainer.classList.add('visible');
+        PIPELINE_NODES.forEach((node) => {
+          const el = $(`step-${node}`);
+          if (el) {
+            el.className = 'step-item pending';
+            const timeEl = $(`time-${node}`);
+            if (timeEl) timeEl.textContent = '—';
+          }
+        });
+      }
+
+      function updateStepActive(node) {
+        const el = $(`step-${node}`);
+        if (el) {
+          el.className = 'step-item active';
+        }
+      }
+
+      function updateStepCompleted(node, ms) {
+        const el = $(`step-${node}`);
+        if (el) {
+          el.className = 'step-item completed';
+          const timeEl = $(`time-${node}`);
+          if (timeEl) {
+            timeEl.textContent = ms != null ? `${ms}ms` : '✓';
+          }
+        }
+      }
+
+      /* --- FRESHNESS SCORE RENDERING --- */
+      function updateScoreRing(score) {
+        if (score == null) {
+          scoreNumber.textContent = '—';
+          scoreConicRing.style.setProperty('--score-deg', 0);
+          scoreConicRing.style.setProperty('--score-color', 'var(--border-strong)');
+          scoreChip.className = 'chip chip-warn';
+          scoreChip.textContent = 'NOT SCORED';
+          scoreSummaryDesc.textContent = 'No time-sensitive claims were extracted or scored.';
+          return;
+        }
+
+        const validScore = Math.max(0, Math.min(100, Math.round(Number(score))));
+        scoreNumber.textContent = validScore;
+
+        let strokeColor = 'var(--stale)';
+        let chipClass = 'chip-stale';
+        let chipLabel = '🔴 STALE';
+        let descText = 'Answer contains outdated or contradicted factual information.';
+
+        if (validScore >= 70) {
+          strokeColor = 'var(--fresh)';
+          chipClass = 'chip-fresh';
+          chipLabel = '🟢 FRESH';
+          descText = 'Answer matches current authoritative web sources.';
+        } else if (validScore >= 30) {
+          strokeColor = 'var(--unverifiable)';
+          chipClass = 'chip-warn';
+          chipLabel = '🟡 NEEDS CONTEXT';
+          descText = 'Answer requires additional verification or evidence was sparse.';
+        }
+
+        scoreConicRing.style.setProperty('--score-deg', validScore);
+        scoreConicRing.style.setProperty('--score-color', strokeColor);
+        scoreChip.className = `chip ${chipClass}`;
+        scoreChip.textContent = chipLabel;
+        scoreSummaryDesc.textContent = descText;
+      }
+
+      /* --- WORD-LEVEL DIFF (POSITIONAL SEQUENCE COMPARISON) --- */
+      function computeWordDiff(original, rewritten) {
+        if (!original) original = '';
+        if (!rewritten) rewritten = '';
+        if (original === rewritten) return escapeHTML(original);
+
+        const wordsA = original.match(/\S+|\s+/g) || [];
+        const wordsB = rewritten.match(/\S+|\s+/g) || [];
+
+        const m = wordsA.length;
+        const n = wordsB.length;
+
+        // Guard against excessive memory usage on long inputs
+        if (m * n > 400000) {
+          return `<strong>Original:</strong><br>${escapeHTML(original)}<br><br><strong>Corrected:</strong><br>${escapeHTML(rewritten)}`;
+        }
+
+        const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+        for (let i = 0; i < m; i++) {
+          for (let j = 0; j < n; j++) {
+            if (wordsA[i] === wordsB[j]) {
+              dp[i + 1][j + 1] = dp[i][j] + 1;
+            } else {
+              dp[i + 1][j + 1] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+            }
+          }
+        }
+
+        let i = m;
+        let j = n;
+        const diff = [];
+        while (i > 0 || j > 0) {
+          if (i > 0 && j > 0 && wordsA[i - 1] === wordsB[j - 1]) {
+            diff.unshift({ type: 'same', text: wordsA[i - 1] });
+            i--;
+            j--;
+          } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+            diff.unshift({ type: 'ins', text: wordsB[j - 1] });
+            j--;
+          } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
+            diff.unshift({ type: 'del', text: wordsA[i - 1] });
+            i--;
+          }
+        }
+
+        let html = '';
+        diff.forEach(item => {
+          const safe = escapeHTML(item.text);
+          if (item.type === 'ins') {
+            html += `<ins class="diff-ins">${safe}</ins>`;
+          } else if (item.type === 'del') {
+            html += `<del class="diff-del">${safe}</del>`;
+          } else {
+            html += safe;
+          }
+        });
+        return html;
+      }
+
+      function renderAnswerView() {
+        if (!lastResultData) return;
+
+        if (currentAnswerView === 'diff') {
+          const orig = lastResultData.answer || '';
+          const rew = lastResultData.rewritten || '';
+          if (orig && rew && orig === rew) {
+            const hasStale = (lastResultData.claims || []).some(c => (c.verdict || '').toLowerCase() === 'stale');
+            comparisonContentBox.innerHTML = escapeHTML(orig) + (hasStale ? '<br><br><em style="color:var(--muted);font-size:0.85rem;">(Note: No corrected version was returned by the verification engine.)</em>' : '');
+          } else {
+            const diffHtml = computeWordDiff(orig, rew);
+            comparisonContentBox.innerHTML = diffHtml || '<em style="color:var(--muted)">No differences detected.</em>';
+          }
+        } else if (currentAnswerView === 'rewritten') {
+          comparisonContentBox.textContent = lastResultData.rewritten || 'No corrected text was provided.';
+        } else if (currentAnswerView === 'original') {
+          comparisonContentBox.textContent = lastResultData.answer || 'No original text available.';
+        }
+      }
+
+      viewDiffBtn.addEventListener('click', () => {
+        currentAnswerView = 'diff';
+        viewDiffBtn.classList.add('active');
+        viewRewrittenBtn.classList.remove('active');
+        viewOriginalBtn.classList.remove('active');
+        renderAnswerView();
+      });
+
+      viewRewrittenBtn.addEventListener('click', () => {
+        currentAnswerView = 'rewritten';
+        viewRewrittenBtn.classList.add('active');
+        viewDiffBtn.classList.remove('active');
+        viewOriginalBtn.classList.remove('active');
+        renderAnswerView();
+      });
+
+      viewOriginalBtn.addEventListener('click', () => {
+        currentAnswerView = 'original';
+        viewOriginalBtn.classList.add('active');
+        viewDiffBtn.classList.remove('active');
+        viewRewrittenBtn.classList.remove('active');
+        renderAnswerView();
+      });
+
+      copyRewrittenBtn.addEventListener('click', async () => {
+        const textToCopy = (lastResultData && lastResultData.rewritten) ? lastResultData.rewritten : (lastResultData ? lastResultData.answer : '');
+        if (!textToCopy) return;
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(textToCopy);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = textToCopy;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          copyRewrittenBtn.classList.add('copied');
+          copyBtnText.textContent = 'Copied!';
+          setTimeout(() => {
+            copyRewrittenBtn.classList.remove('copied');
+            copyBtnText.textContent = 'Copy Corrected Answer';
+          }, 2000);
+        } catch {
+          showAlert('Failed to copy text to clipboard', 'warning');
+        }
+      });
+
+      /* --- CLAIM-BY-CLAIM RENDERING --- */
+      function renderClaims(claims = []) {
+        claimsList.innerHTML = '';
+
+        const filtered = claims.filter(c => {
+          if (currentFilter === 'all') return true;
+          return (c.verdict || '').toLowerCase() === currentFilter.toLowerCase();
+        });
+
+        claimsCountBadge.textContent = `${filtered.length} of ${claims.length} claims`;
+
+        if (filtered.length === 0) {
+          claimsList.innerHTML = `
+            <div style="text-align: center; padding: 28px; color: var(--muted); background: #080c16; border: 1px dashed var(--border); border-radius: var(--radius-md);">
+              ${claims.length === 0 ? 'No time-sensitive claims were found in this answer.' : `No claims match the filter: <strong>${escapeHTML(currentFilter)}</strong>`}
+            </div>
+          `;
+          return;
+        }
+
+        filtered.forEach((claim, index) => {
+          const card = document.createElement('div');
+          const verdict = (claim.verdict || 'Unverifiable').toLowerCase();
+          card.className = `claim-card ${verdict}-card`;
+
+          let scoreColor = 'var(--unverifiable)';
+          if (verdict === 'fresh') scoreColor = 'var(--fresh)';
+          if (verdict === 'stale') scoreColor = 'var(--stale)';
+
+          const scoreVal = Number(claim.score) || 0;
+          const isCached = Boolean(claim.cached);
+          const panelId = `evidence-panel-${claim.id || index}`;
+
+          // Format title
+          const titleText = claim.title || claim.text || `Claim ${index + 1}`;
+
+          // Build Evidence Items (if provided)
+          let evidenceCardsHtml = '';
+          if (Array.isArray(claim.evidence) && claim.evidence.length > 0) {
+            evidenceCardsHtml = `
+              <div class="detail-row">
+                <span class="detail-row-label">Cited Evidence Items</span>
+                <div class="evidence-cards-list">
+                  ${claim.evidence.map(e => `
+                    <div class="evidence-item-card">
+                      <a href="${sanitizeUrl(e.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(e.title || e.url)}</a>
+                      ${e.date ? `<div class="evidence-date">📅 Published: ${escapeHTML(e.date)}</div>` : ''}
+                      ${e.snippet ? `<div class="evidence-snippet">"${escapeHTML(e.snippet)}"</div>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+
+          // Build Source Link Pills
+          let sourcesPillsHtml = '';
+          if (Array.isArray(claim.sources) && claim.sources.length > 0) {
+            sourcesPillsHtml = `
+              <div class="detail-row">
+                <span class="detail-row-label">Source URLs</span>
+                <div class="sources-pill-row">
+                  ${claim.sources.map(s => `
+                    <a href="${sanitizeUrl(s)}" target="_blank" rel="noopener noreferrer" class="source-pill-link" title="${escapeHTML(s)}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                      </svg>
+                      <span>${escapeHTML(extractHostname(s))}</span>
+                    </a>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          } else if (!evidenceCardsHtml) {
+            sourcesPillsHtml = `
+              <div class="detail-row">
+                <span class="detail-row-label">Evidence</span>
+                <span style="font-size:0.8rem; color:var(--muted)">No supporting evidence details were returned.</span>
+              </div>
+            `;
+          }
+
+          card.innerHTML = `
+            <div class="claim-top-bar">
+              <div class="claim-badges-left">
+                <span class="claim-num">Claim ${String(index + 1).padStart(2, '0')}</span>
+                <span class="verdict-badge ${verdict}">
+                  <span class="status-dot"></span>
+                  ${escapeHTML(claim.verdict || 'Unverifiable')}
+                </span>
+                ${claim.category ? `<span class="category-chip">${escapeHTML(claim.category)}</span>` : ''}
+                ${isCached ? `<span class="memory-hit-chip">⚡ Memory Hit</span>` : ''}
+              </div>
+
+              <div class="claim-score-indicator" title="Claim confidence score">
+                <div class="score-mini-bar">
+                  <div class="score-mini-fill" style="width: ${scoreVal}%; background: ${scoreColor};"></div>
+                </div>
+                <span class="claim-score-val" style="color: ${scoreColor};">${scoreVal}/100</span>
+              </div>
+            </div>
+
+            <div class="claim-title-text">${escapeHTML(titleText)}</div>
+            <div class="claim-original-text">“${escapeHTML(claim.text || '')}”</div>
+
+            <button class="toggle-evidence-btn" type="button" aria-expanded="false" data-target="${panelId}">
+              <span>▶ View Evidence</span>
+            </button>
+
+            <div class="evidence-panel" id="${panelId}">
+              ${claim.current_fact ? `
+                <div class="detail-row">
+                  <span class="detail-row-label">Verified Current Fact</span>
+                  <span class="detail-row-val current-fact-val">${escapeHTML(claim.current_fact)}</span>
+                </div>
+              ` : ''}
+
+              ${claim.reason ? `
+                <div class="detail-row">
+                  <span class="detail-row-label">Reasoning &amp; Assessment</span>
+                  <span class="detail-row-val">${escapeHTML(claim.reason)}</span>
+                </div>
+              ` : ''}
+
+              ${evidenceCardsHtml}
+              ${sourcesPillsHtml}
+            </div>
+          `;
+
+          // Attach panel toggle handler safely
+          const toggleBtn = card.querySelector('.toggle-evidence-btn');
+          const panel = card.querySelector(`#${panelId}`);
+          toggleBtn.addEventListener('click', () => {
+            const isOpen = panel.classList.toggle('open');
+            toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            toggleBtn.querySelector('span').textContent = isOpen ? '▼ Hide Evidence' : '▶ View Evidence';
+          });
+
+          claimsList.appendChild(card);
+        });
+      }
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          if (lastResultData) {
+            renderClaims(lastResultData.claims || []);
+          }
+        });
+      });
+
+      /* --- CONSOLIDATED SOURCES PANEL --- */
+      function renderConsolidatedSources(claims = []) {
+        sourcesList.innerHTML = '';
+        const seenUrls = new Set();
+        const consolidated = [];
+
+        claims.forEach((claim, cIdx) => {
+          // Gather from optional evidence items
+          if (Array.isArray(claim.evidence)) {
+            claim.evidence.forEach(e => {
+              if (e.url && !seenUrls.has(e.url.toLowerCase())) {
+                seenUrls.add(e.url.toLowerCase());
+                consolidated.push({
+                  url: e.url,
+                  title: e.title || extractHostname(e.url),
+                  date: e.date || null,
+                  snippet: e.snippet || null,
+                  claimIndex: cIdx + 1
+                });
+              }
+            });
+          }
+
+          // Gather from sources array
+          if (Array.isArray(claim.sources)) {
+            claim.sources.forEach(url => {
+              if (url && !seenUrls.has(url.toLowerCase())) {
+                seenUrls.add(url.toLowerCase());
+                consolidated.push({
+                  url: url,
+                  title: extractHostname(url),
+                  date: null,
+                  snippet: null,
+                  claimIndex: cIdx + 1
+                });
+              }
+            });
+          }
+        });
+
+        if (consolidated.length === 0) {
+          sourcesList.innerHTML = '<p style="color:var(--muted);font-size:0.86rem;padding:8px 0;">No external evidence sources were returned for these claims.</p>';
+          return;
+        }
+
+        consolidated.forEach((src, idx) => {
+          const row = document.createElement('div');
+          row.className = 'source-row';
+          const detId = `src-detail-${idx}`;
+          const safeUrl = sanitizeUrl(src.url);
+
+          row.innerHTML = `
+            <div class="source-header-row">
+              <div class="source-title-text">Source ${idx + 1}: ${escapeHTML(src.title)}</div>
+              <span class="status-badge" style="font-size:0.68rem;">Claim ${src.claimIndex}</span>
+            </div>
+            <div class="source-url-text" style="margin-top:3px;">
+              <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>
+            </div>
+            ${(src.date || src.snippet) ? `
+              <button class="toggle-evidence-btn" type="button" style="margin-top:6px;" data-target="${detId}">
+                <span>▶ View Details</span>
+              </button>
+              <div class="source-details-panel" id="${detId}">
+                ${src.date ? `<div class="evidence-date">📅 Published: ${escapeHTML(src.date)}</div>` : ''}
+                ${src.snippet ? `<div class="evidence-snippet">"${escapeHTML(src.snippet)}"</div>` : ''}
+              </div>
+            ` : ''}
+          `;
+
+          const toggle = row.querySelector('.toggle-evidence-btn');
+          if (toggle) {
+            const detPanel = row.querySelector(`#${detId}`);
+            toggle.addEventListener('click', () => {
+              const isOpen = detPanel.classList.toggle('open');
+              toggle.querySelector('span').textContent = isOpen ? '▼ Hide Details' : '▶ View Details';
+            });
+          }
+
+          sourcesList.appendChild(row);
+        });
+      }
+
+      /* --- RENDER COMPLETE VERIFICATION RESULTS --- */
+      function renderResults(data) {
+        lastResultData = data;
+        skeletonWrap.classList.remove('visible');
+        resultsSection.classList.add('visible');
+
+        // 1. Original Answer
+        origAnswerText.textContent = data.answer || '';
+
+        // 2. Freshness Score & Metrics
+        updateScoreRing(data.overall);
+        metricClaimsCount.textContent = (data.claims || []).length;
+        metricCacheHits.textContent = data.cache_hits != null ? data.cache_hits : 0;
+
+        let totalMs = 0;
+        if (Array.isArray(data.trace)) {
+          totalMs = data.trace.reduce((sum, item) => sum + (Number(item.ms) || 0), 0);
+          data.trace.forEach(t => {
+            const capNode = t.node.charAt(0).toUpperCase() + t.node.slice(1);
+            const archEl = $(`archTrace${capNode}`);
+            if (archEl) archEl.textContent = `${t.ms}ms`;
+          });
+        }
+        metricTotalLatency.textContent = `${totalMs}ms`;
+
+        // 3. Claims & Stable Facts
+        renderClaims(data.claims || []);
+
+        const sf = Array.isArray(data.stable_facts) ? data.stable_facts : [];
+        if (sf.length > 0) {
+          stableFactsBlock.classList.remove('hidden');
+          stableFactsList.innerHTML = sf.map(f => `<div class="stable-fact-item">📌 ${escapeHTML(f)}</div>`).join('');
+        } else {
+          stableFactsBlock.classList.add('hidden');
+          stableFactsList.innerHTML = '';
+        }
+
+        // 4. Comparison View
+        renderAnswerView();
+
+        // 5. Consolidated Sources
+        renderConsolidatedSources(data.claims || []);
+
+        // 6. Diagnostics & Raw JSON
+        rawTraceBox.textContent = JSON.stringify(data, null, 2);
+
+        // Notify if no claims
+        if (!data.claims || data.claims.length === 0) {
+          showAlert('No time-sensitive claims were found in the provided answer. Nothing to verify.', 'info');
+        }
+      }
+
+      /* --- COLLAPSIBLE DIAGNOSTICS HANDLERS --- */
+      archDetailsSummary.addEventListener('click', () => {
+        const isHidden = archDetailsContent.style.display === 'none';
+        archDetailsContent.style.display = isHidden ? 'flex' : 'none';
+        archToggleIcon.textContent = isHidden ? '▲' : '▼';
+      });
+
+      toggleRawTraceBtn.addEventListener('click', () => {
+        const isHidden = rawTraceBox.classList.contains('hidden');
+        rawTraceBox.classList.toggle('hidden', !isHidden);
+        toggleRawTraceBtn.textContent = isHidden ? 'Hide Raw Trace JSON' : 'View Raw Trace JSON';
+      });
+
+      /* --- EXPORTS --- */
+      exportJsonBtn.addEventListener('click', () => {
+        if (!lastResultData) return;
+        const blob = new Blob([JSON.stringify(lastResultData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `stalecheck-audit-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      copyMarkdownBtn.addEventListener('click', async () => {
+        if (!lastResultData) return;
+        let md = `# StaleCheck Freshness Audit Report\n\n`;
+        md += `**Overall Freshness Score:** ${lastResultData.overall != null ? lastResultData.overall + '/100' : 'Not Scored'}\n`;
+        md += `**Cache Hits:** ${lastResultData.cache_hits != null ? lastResultData.cache_hits : 0}\n\n`;
+        md += `## Original Answer\n\n${lastResultData.answer}\n\n`;
+        md += `## Evaluated Claims\n\n`;
+        (lastResultData.claims || []).forEach((c, idx) => {
+          md += `### ${idx + 1}. [${c.verdict}] ${c.title || c.text}\n`;
+          md += `- **Score:** ${c.score}/100 | **Category:** ${c.category} | **Cached:** ${Boolean(c.cached)}\n`;
+          if (c.current_fact) md += `- **Verified Fact:** ${c.current_fact}\n`;
+          if (c.reason) md += `- **Reasoning:** ${c.reason}\n`;
+          if (c.sources && c.sources.length) md += `- **Sources:** ${c.sources.join(', ')}\n`;
+          md += `\n`;
+        });
+        if (Array.isArray(lastResultData.stable_facts) && lastResultData.stable_facts.length) {
+          md += `## Stable Facts\n\n`;
+          lastResultData.stable_facts.forEach(f => { md += `- ${f}\n`; });
+          md += `\n`;
+        }
+        md += `## Corrected Answer\n\n${lastResultData.rewritten || lastResultData.answer}\n`;
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(md);
+          }
+          showAlert('Markdown audit summary copied to clipboard!', 'info');
+          setTimeout(hideAlert, 2500);
+        } catch {
+          showAlert('Failed to copy Markdown', 'warning');
+        }
+      });
+
+      printReportBtn.addEventListener('click', () => {
+        window.print();
+      });
+
+      /* --- MOCK SIMULATION --- */
+      async function runMockSimulation() {
+        resetStepper();
+        skeletonWrap.classList.add('visible');
+        resultsSection.classList.remove('visible');
+
+        const activePresetKey = presetScenarioSelect.value || 'nova_spec';
+        const scenario = PRESETS[activePresetKey] ? PRESETS[activePresetKey].data : PRESETS.nova_spec.data;
+
+        // Simulate stepper progression
+        const trace = scenario.trace || [];
+        for (let i = 0; i < trace.length; i++) {
+          const t = trace[i];
+          updateStepActive(t.node);
+          await new Promise(r => setTimeout(r, Math.min(t.ms / 5, 450)));
+          updateStepCompleted(t.node, t.ms);
+        }
+
+        renderResults(scenario);
+      }
+
+      /* --- LIVE SSE STREAM REQUEST --- */
+      async function runStreamRequest(endpoint, payload) {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          let errorMsg = `Server error ${response.status}: ${response.statusText}`;
+          try {
+            const errData = await response.json();
+            errorMsg = errData.error || errData.detail || errorMsg;
+          } catch {}
+          const error = new Error(errorMsg);
+          error.status = response.status;
+          throw error;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let finalResponseData = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          // Split on event boundaries (\n\n or \r\n\r\n)
+          const blocks = buffer.split(/\r?\n\r?\n/);
+          buffer = blocks.pop(); // Keep incomplete trailing fragment in buffer
+
+          for (const block of blocks) {
+            if (!block.trim()) continue;
+
+            const lines = block.split(/\r?\n/);
+            let eventType = 'message';
+            const dataLines = [];
+
+            for (const line of lines) {
+              if (line.startsWith('event:')) {
+                eventType = line.replace('event:', '').trim();
+              } else if (line.startsWith('data:')) {
+                dataLines.push(line.replace('data:', '').trim());
+              }
+            }
+
+            const dataStr = dataLines.join('\n');
+            if (!dataStr) continue;
+
+            let parsed;
+            try {
+              parsed = JSON.parse(dataStr);
+            } catch (jsonErr) {
+              // If it's an error event with raw non-JSON text
+              if (eventType === 'error') {
+                throw new Error(dataStr || 'Server reported a pipeline execution error');
+              }
+              continue;
+            }
+
+            if (eventType === 'node') {
+              if (parsed && parsed.node) {
+                updateStepCompleted(parsed.node, parsed.ms);
+                const nextIdx = PIPELINE_NODES.indexOf(parsed.node) + 1;
+                if (nextIdx < PIPELINE_NODES.length) {
+                  updateStepActive(PIPELINE_NODES[nextIdx]);
+                }
+              }
+            } else if (eventType === 'done') {
+              finalResponseData = parsed;
+            } else if (eventType === 'error') {
+              const msg = parsed.message || parsed.error || 'Server reported an upstream service failure';
+              const sseErr = new Error(msg);
+              sseErr.isServerError = true;
+              throw sseErr;
+            }
+          }
+        }
+
+        if (!finalResponseData) {
+          throw new Error('Stream concluded without receiving final payload');
+        }
+
+        return finalResponseData;
+      }
+
+      /* --- STANDARD FALLBACK REQUEST --- */
+      async function runStandardRequest(endpoint, payload) {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          let msg = `HTTP error ${response.status}: ${response.statusText}`;
+          try {
+            const errBody = await response.json();
+            msg = errBody.detail || errBody.error || errBody.message || msg;
+          } catch {}
+          throw new Error(msg);
+        }
+
+        return await response.json();
+      }
+
+      /* --- PRIMARY VERIFICATION RUN HANDLER --- */
+      async function handleRun() {
+        const text = mainInput.value.trim();
+        if (!text) {
+          showAlert('Please enter or paste an answer to verify (minimum 3 characters).', 'warning');
+          mainInput.focus();
+          return;
+        }
+
+        if (text.length < 3) {
+          showAlert('Input text must be at least 3 characters long.', 'warning');
+          mainInput.focus();
+          return;
+        }
+
+        hideAlert();
+        isRunning = true;
+        runBtn.disabled = true;
+        runBtn.classList.add('loading');
+        runBtnText.textContent = currentMode === 'check' ? 'Auditing…' : 'Generating & Checking…';
+
+        try {
+          if (isMockMode) {
+            await runMockSimulation();
+            return;
+          }
+
+          resetStepper();
+          updateStepActive('extract');
+          skeletonWrap.classList.add('visible');
+          resultsSection.classList.remove('visible');
+
+          const streamEndpoint = currentMode === 'check' ? '/api/check/stream' : '/api/ask/stream';
+          const standardEndpoint = currentMode === 'check' ? '/api/check' : '/api/ask';
+
+          let resultData;
+          try {
+            resultData = await runStreamRequest(streamEndpoint, { text });
+          } catch (streamError) {
+            // DO NOT fall back if the server explicitly raised an error event or validation error
+            if (streamError.isServerError || (streamError.status && streamError.status !== 404 && streamError.status !== 405)) {
+              throw streamError;
+            }
+
+            // Safe fallback if streaming endpoint was unavailable
+            resultData = await runStandardRequest(standardEndpoint, { text });
+            if (Array.isArray(resultData.trace)) {
+              resultData.trace.forEach(t => updateStepCompleted(t.node, t.ms));
+            } else {
+              PIPELINE_NODES.forEach(n => updateStepCompleted(n, null));
+            }
+          }
+
+          renderResults(resultData);
+        } catch (err) {
+          showAlert(`Verification failed: ${err.message || 'Unknown network error'}`);
+          skeletonWrap.classList.remove('visible');
+        } finally {
+          isRunning = false;
+          runBtn.disabled = false;
+          runBtn.classList.remove('loading');
+          runBtnText.textContent = 'Run Verification';
+        }
+      }
+
+      runBtn.addEventListener('click', handleRun);
+
+      mainInput.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          if (!isRunning) handleRun();
+        }
+      });
+
+      /* --- INITIALIZATION --- */
+      updateMockBadge();
+      setMode('check');
+      checkBackendHealth();
+
+      // Offline URL mock support (?mock=1)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('mock') === '1') {
+        const scenario = PRESETS.nova_spec.data;
+        setTimeout(() => {
+          mainInput.value = scenario.answer;
+          renderResults(scenario);
+        }, 150);
+      }
+    })();
+  </script>
 </body>
 </html>
