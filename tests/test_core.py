@@ -38,7 +38,7 @@ class CoreTests(unittest.TestCase):
         self.assertIsNone(build('An answer', {'results': []}).overall)
 
     def test_missing_llm_key_fails_instead_of_placeholder(self):
-        with patch.dict('os.environ', {'OPENAI_API_KEY': '', 'BIFROST_API_KEY': ''}):
+        with patch.dict('os.environ', {'OPENAI_API_KEY': '', 'BIFROST_API_KEY': '', 'BIFROST_KEY': ''}):
             with self.assertRaises(RuntimeError):
                 graph.local_answer('A question')
 
