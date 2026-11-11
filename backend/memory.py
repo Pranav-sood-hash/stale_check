@@ -82,3 +82,7 @@ def stats() -> dict:
 def clear() -> None:
     with _get_connection() as conn:
         conn.execute("DELETE FROM evidence_cache")
+
+# Alias for backward compatibility
+set = put
+
