@@ -106,11 +106,17 @@ def build(answer: str, state: dict) -> Result:
     if claims:
         overall = round(sum(c.score for c in claims) / len(claims))
     else:
-        overall = None
-    cache_hits = state.get("cached", 0)
-    if not isinstance(cache_hits, int):
+        overall = state.get("overall", None)
+
+    cached_val = state.get("cached", 0)
+    if isinstance(cached_val, list):
+        cache_hits = len(cached_val)
+    elif isinstance(cached_val, int):
+        cache_hits = cached_val
+    else:
         cache_hits = sum(1 for c in claims if c.cached)
-    rewritten = state.get("rewritten", "")
+
+    rewritten = state.get("rewritten", "") or answer
     stable_facts = state.get("stable_facts", [])
     if not isinstance(stable_facts, list):
         stable_facts = []
@@ -127,14 +133,14 @@ def build(answer: str, state: dict) -> Result:
     )
 
 def execute_graph_sync(text: str, event_queue: Optional[asyncio.Queue] = None, loop: Optional[asyncio.AbstractEventLoop] = None) -> Result:
-    last_time = time.time()
+    last_time = time.perf_counter()
     accumulated_state = {}
     node_traces = []
 
     if hasattr(app_graph, "stream"):
         stream_iter = app_graph.stream({"text": text, "answer": text}, stream_mode="updates")
         for update in stream_iter:
-            now = time.time()
+            now = time.perf_counter()
             elapsed_ms = int((now - last_time) * 1000)
             last_time = now
             for node_name, node_state in update.items():
@@ -148,7 +154,7 @@ def execute_graph_sync(text: str, event_queue: Optional[asyncio.Queue] = None, l
         state = app_graph.invoke({"text": text, "answer": text})
         if isinstance(state, dict):
             accumulated_state.update(state)
-        now = time.time()
+        now = time.perf_counter()
         elapsed_ms = int((now - last_time) * 1000)
         trace_entry = {"node": "graph", "ms": elapsed_ms}
         node_traces.append(trace_entry)
@@ -178,7 +184,7 @@ async def generic_handler(request: Request, exc: Exception):
 
 @api.get("/api/health")
 async def health():
-    keys = ["TAVILY_API_KEY", "BIFROST_API_KEY", "OPENAI_API_KEY", "ALLOWED_ORIGINS", "BIFROST_BASE_URL"]
+    keys = ["TAVILY_API_KEY", "BIFROST_KEY", "BIFROST_URL", "BIFROST_API_KEY", "OPENAI_API_KEY", "ALLOWED_ORIGINS"]
     return {
         "status": "ok",
         "env": {k: bool(os.getenv(k)) for k in keys}

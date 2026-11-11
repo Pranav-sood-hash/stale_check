@@ -4,7 +4,8 @@ import json
 import math
 import logging
 import datetime
-from typing import Optional, Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import Optional, Any, Union
 try:
     from typing_extensions import TypedDict
 except ImportError:
@@ -96,6 +97,11 @@ PROMPTS = {
         '    {"original": "exact sentence to replace", "replacement": "corrected sentence with [source](url)"}\n'
         "  ]\n"
         "}"
+    ),
+    "local": (
+        f"You are StaleCheck, an all-in-one factual freshness verification model. Today is {datetime.date.today().isoformat()}.\n"
+        "Given an input text and search evidence, perform extraction, verification, scoring, and surgical rewriting in a single pass.\n"
+        "Return valid JSON with keys: claims, analysis, judgments, edits, stable_facts."
     )
 }
 
@@ -300,12 +306,15 @@ def apply_recency_adjustment(score: int, verdict: str, category: str, status: st
 
     return score, verdict, reason
 
-def run_analysis_logic(claims: list[dict], all_evidence: list[dict], analyst_model: Any = None) -> list[dict]:
-    ev_by_claim = {}
-    for ev in all_evidence:
-        cid = ev.get("claim_id")
-        if cid is not None:
-            ev_by_claim.setdefault(cid, []).append(ev)
+def run_analysis_logic(claims: list[dict], all_evidence: Union[dict[int, list[dict]], list[dict]], analyst_model: Any = None) -> list[dict]:
+    if isinstance(all_evidence, dict):
+        ev_by_claim = all_evidence
+    else:
+        ev_by_claim = {}
+        for ev in all_evidence:
+            cid = ev.get("claim_id")
+            if cid is not None:
+                ev_by_claim.setdefault(cid, []).append(ev)
 
     analysis_results = []
     for c in claims:
@@ -339,6 +348,9 @@ def run_analysis_logic(claims: list[dict], all_evidence: list[dict], analyst_mod
                 + "\n---\n".join(ev_prompt_lines)
             )
             resp = ask_json(analyst_model, PROMPTS["analyze"], user_prompt)
+            if not isinstance(resp, dict) or not resp.get("analysis"):
+                # Retry once on malformed response
+                resp = ask_json(analyst_model, PROMPTS["analyze"], user_prompt)
             if isinstance(resp, dict):
                 items = resp.get("analysis")
                 if isinstance(items, list) and items:
@@ -377,12 +389,15 @@ def run_analysis_logic(claims: list[dict], all_evidence: list[dict], analyst_mod
 
     return analysis_results
 
-def run_judge_logic(claims: list[dict], analysis_list: list[dict], all_evidence: list[dict], judge_model: Any = None) -> list[dict]:
-    ev_by_claim = {}
-    for ev in all_evidence:
-        cid = ev.get("claim_id")
-        if cid is not None:
-            ev_by_claim.setdefault(cid, []).append(ev)
+def run_judge_logic(claims: list[dict], analysis_list: list[dict], all_evidence: Union[dict[int, list[dict]], list[dict]], judge_model: Any = None) -> list[dict]:
+    if isinstance(all_evidence, dict):
+        ev_by_claim = all_evidence
+    else:
+        ev_by_claim = {}
+        for ev in all_evidence:
+            cid = ev.get("claim_id")
+            if cid is not None:
+                ev_by_claim.setdefault(cid, []).append(ev)
 
     analysis_by_id = {a["id"]: a for a in analysis_list}
     results = []
@@ -516,7 +531,7 @@ def extract_node(state: dict) -> dict:
             "stable_facts": [],
             "results": [],
             "rewritten": text,
-            "cached": 0
+            "cached": []
         }
 
     extract_m = model("EXTRACT_MODEL", "openai/gpt-4o-mini", 0.0)
@@ -524,13 +539,13 @@ def extract_node(state: dict) -> dict:
     stable_facts: list[str] = []
     today = datetime.date.today().isoformat()
     resp = ask_json(extract_m, PROMPTS["extract"].replace("{today}", today), f"Text to analyze:\n{text}")
-    if not isinstance(resp, dict) or not isinstance(resp.get("claims"), list):
-        raise RuntimeError("Claim extraction returned an invalid response")
     if isinstance(resp, dict):
         if isinstance(resp.get("claims"), list):
             raw_claims = resp.get("claims")
         if isinstance(resp.get("stable_facts"), list):
             stable_facts = [str(s).strip() for s in resp.get("stable_facts") if str(s).strip()][:4]
+    else:
+        raise RuntimeError("Claim extraction returned an invalid response")
 
     cleaned = clean_claims(raw_claims)
     if not cleaned:
@@ -539,36 +554,48 @@ def extract_node(state: dict) -> dict:
             "stable_facts": stable_facts,
             "results": [],
             "rewritten": text,
-            "cached": 0
+            "cached": []
         }
 
     return {"claims": cleaned, "stable_facts": stable_facts}
 
 def search_node(state: dict) -> dict:
     claims = state.get("claims", [])
-    all_evidence = []
-    cache_hits = 0
+    if not claims:
+        return {"claims": [], "evidence": {}, "cached": []}
 
-    for c in claims:
+    cached_claim_ids = []
+    evidence_by_claim = {}
+
+    def _fetch_for_claim(c):
         try:
             ev_list, from_cache = fetch_evidence(c)
             c["cached"] = bool(from_cache)
-            if from_cache:
-                cache_hits += 1
             norm_ev = normalize_evidence(c["id"], ev_list)
-            all_evidence.extend(norm_ev)
+            return c["id"], norm_ev, bool(from_cache)
         except Exception as exc:
             logger.error(f"Search retrieval error for claim id={c.get('id')}: {exc}")
+            c["cached"] = False
+            return c["id"], [], False
+
+    max_workers = min(5, max(1, len(claims)))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(_fetch_for_claim, c) for c in claims]
+        for f in futures:
+            cid, ev_items, from_cache = f.result()
+            if from_cache:
+                cached_claim_ids.append(cid)
+            evidence_by_claim[cid] = ev_items
 
     return {
         "claims": claims,
-        "evidence": all_evidence,
-        "cached": cache_hits
+        "evidence": evidence_by_claim,
+        "cached": cached_claim_ids
     }
 
 def analyze_node(state: dict) -> dict:
     claims = state.get("claims", [])
-    evidence = state.get("evidence", [])
+    evidence = state.get("evidence", {})
     analyst_m = model("ANALYST_MODEL", "openai/gpt-4o-mini", 0.0)
     analysis_results = run_analysis_logic(claims, evidence, analyst_model=analyst_m)
     return {"analysis": analysis_results}
@@ -576,7 +603,7 @@ def analyze_node(state: dict) -> dict:
 def judge_node(state: dict) -> dict:
     claims = state.get("claims", [])
     analysis = state.get("analysis", [])
-    evidence = state.get("evidence", [])
+    evidence = state.get("evidence", {})
 
     analyst_env = os.getenv("ANALYST_MODEL", "openai/gpt-4o-mini")
     judge_env = os.getenv("JUDGE_MODEL", "anthropic/claude-3-5-sonnet")
@@ -601,8 +628,8 @@ class GraphState(TypedDict, total=False):
     answer: str
     claims: list[dict]
     stable_facts: list[str]
-    evidence: list[dict]
-    cached: int
+    evidence: Union[dict[int, list[dict]], list[dict]]
+    cached: Union[list[int], int]
     analysis: list[dict]
     results: list[dict]
     rewritten: str
@@ -677,7 +704,8 @@ app_graph = build_app_graph()
 
 def local_answer(question: str) -> str:
     m = model("LOCAL_MODEL", "openai/gpt-4o-mini", 0.7)
-    if isinstance(m, dict) and not os.getenv("OPENAI_API_KEY") and not os.getenv("BIFROST_API_KEY"):
+    api_key = os.getenv("BIFROST_KEY") or os.getenv("BIFROST_API_KEY") or os.getenv("OPENAI_API_KEY")
+    if not api_key:
         raise RuntimeError("Language model API key is not configured")
     try:
         resp = ask_json(m, 'Answer the user question factually in 2-3 sentences. Return JSON with an "answer" field.', question)
