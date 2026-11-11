@@ -11,6 +11,10 @@ def model(env: str, default: str = "", temp: float = 0.0) -> dict:
     model_name = os.getenv(env, default)
     api_key = os.getenv("BIFROST_API_KEY") or os.getenv("OPENAI_API_KEY")
     base_url = os.getenv("BIFROST_BASE_URL") or "https://api.openai.com/v1"
+    if not os.getenv("BIFROST_BASE_URL") and model_name.startswith("openai/"):
+        model_name = model_name.removeprefix("openai/")
+    if not os.getenv("BIFROST_BASE_URL") and env not in os.environ and model_name.startswith("anthropic/"):
+        model_name = "gpt-4o-mini"
     return {
         "env": env,
         "model": model_name,
@@ -49,9 +53,9 @@ def ask_json(llm: Any, system: str, user: str) -> dict:
                 content = data["choices"][0]["message"]["content"]
                 return json.loads(_clean_json_str(content))
             else:
-                logger.warning(f"LLM API returned status {resp.status_code}: {resp.text}")
+                logger.warning("LLM API returned status %s", resp.status_code)
         except Exception as exc:
             logger.error(f"LLM call failed: {exc}")
 
-    return {}
+    raise RuntimeError("Language model unavailable or returned an invalid response")
 

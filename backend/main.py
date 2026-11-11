@@ -18,7 +18,10 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field, ConfigDict
 import logging
 
-from graph import app_graph, local_answer
+try:
+    from .graph import app_graph, local_answer
+except ImportError:
+    from graph import app_graph, local_answer
 
 logger = logging.getLogger("stalecheck")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -32,9 +35,7 @@ rate_limits: dict[str, list[float]] = defaultdict(list)
 @api.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     if request.url.path.startswith("/api/"):
-        client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        if not client_ip:
-            client_ip = request.client.host if request.client else "127.0.0.1"
+        client_ip = request.client.host if request.client else "127.0.0.1"
         now = time.time()
         valid_timestamps = [t for t in rate_limits[client_ip] if now - t < WINDOW_SECONDS]
         if len(valid_timestamps) >= RATE_LIMIT:
@@ -87,7 +88,7 @@ class Claim(BaseModel):
 class Result(BaseModel):
     model_config = ConfigDict(extra="ignore")
     answer: str
-    overall: int
+    overall: Optional[int]
     cache_hits: int = 0
     rewritten: str = ""
     stable_facts: list[str] = Field(default_factory=list)
@@ -105,7 +106,7 @@ def build(answer: str, state: dict) -> Result:
     if claims:
         overall = round(sum(c.score for c in claims) / len(claims))
     else:
-        overall = 100
+        overall = None
     cache_hits = state.get("cached", 0)
     if not isinstance(cache_hits, int):
         cache_hits = sum(1 for c in claims if c.cached)

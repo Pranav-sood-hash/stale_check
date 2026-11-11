@@ -106,7 +106,7 @@
   <div class="container">
     <header>
       <h1>StaleCheck Dashboard</h1>
-      <p class="subtitle">PS6 Stale-Answer Detector — LangGraph + FastAPI</p>
+      <p class="subtitle">PS6 Stale-Answer Detector — FastAPI</p>
       <div class="status-bar" id="statusBar"><span>System: Checking...</span></div>
     </header>
 
@@ -201,7 +201,7 @@
     try {
       const r = await fetch('/api/health');
       const d = await r.json();
-      $('statusBar').innerHTML = `<span>Status: <strong>${esc(d.status)}</strong></span> | <span>Tavily: ${d.env.TAVILY_API_KEY ? '✅' : '❌'}</span> | <span>Bifrost: ${d.env.BIFROST_API_KEY ? '✅' : '❌'}</span>`;
+      $('statusBar').innerHTML = `<span>Status: <strong>${esc(d.status)}</strong></span> | <span>Tavily: ${d.env.TAVILY_API_KEY ? '✅' : '❌'}</span> | <span>LLM: ${(d.env.BIFROST_API_KEY || d.env.OPENAI_API_KEY) ? '✅' : '❌'}</span>`;
     } catch { $('statusBar').innerHTML = `<span style="color:var(--accent-stale)">Status: Disconnected</span>`; }
   }
   checkHealth();
@@ -236,9 +236,9 @@
     $('origAnswer').textContent = data.answer || '';
 
     // 2. Freshness
-    const score = data.overall ?? 0;
-    const { chip, cls, caption } = freshnessLabel(score);
-    $('freshnessScore').innerHTML = `${score} <span>/ 100</span>`;
+    const score = data.overall;
+    const { chip, cls, caption } = score == null ? { chip: 'NOT SCORED', cls: 'chip-warn', caption: 'No time-sensitive claims were found' } : freshnessLabel(score);
+    $('freshnessScore').innerHTML = `${score == null ? '—' : score} <span>/ 100</span>`;
     $('freshnessChip').className = `chip ${cls}`;
     $('freshnessChip').textContent = chip;
     $('freshnessCaption').textContent = caption;
@@ -380,7 +380,9 @@
     $('streamEvents').textContent = 'Opening SSE stream...';
     $('resultsArea').classList.add('hidden');
     $('rawCard').style.display = 'none';
+    try {
     const response = await fetch('/api/check/stream', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text}) });
+    if (!response.ok) { const data = await response.json(); throw new Error(data.error || response.statusText); }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -402,6 +404,7 @@
         else if (ev === 'error') showError(data.message);
       }
     }
+    } catch (e) { showError(e.message); }
   };
 
   // ?mock=1 support for offline testing

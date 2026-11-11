@@ -262,9 +262,7 @@ def normalize_verdict_and_score(raw_score: Any, raw_verdict: str, status: str, s
     if status == "current":
         if score >= 70:
             return score, "Fresh"
-        if score < 30:
-            return score, "Stale"
-        return score, "Unverifiable"
+        return max(30, score), "Unverifiable"
         
     if score >= 70:
         return score, "Fresh"
@@ -360,9 +358,9 @@ def run_analysis_logic(claims: list[dict], all_evidence: list[dict], analyst_mod
             if raw_status == "current" and not raw_sources:
                 raw_status = "unverifiable"
                 raw_reason = (raw_reason + " Status downgraded: no verifiable sources cited.").strip()
-            elif raw_status == "outdated" and not raw_fact:
+            elif raw_status == "outdated" and (not raw_fact or not raw_sources):
                 raw_status = "unverifiable"
-                raw_reason = (raw_reason + " Status downgraded: no evidence-backed correction.").strip()
+                raw_reason = (raw_reason + " Status downgraded: no cited evidence-backed correction.").strip()
 
             analysis_results.append({
                 "id": cid,
@@ -372,32 +370,9 @@ def run_analysis_logic(claims: list[dict], all_evidence: list[dict], analyst_mod
                 "sources": raw_sources
             })
         else:
-            claim_text = c["text"].lower()
-            ev_text = " ".join([e.get("content", "") + " " + e.get("title", "") for e in c_evidence]).lower()
-            
-            is_contradicted = any(k in ev_text for k in ["withdrew", "shut down", "deprecated", "linda yaccarino", "latest stable version.", "available for $20"])
-            if is_contradicted:
-                status = "outdated"
-                current_fact = c_evidence[0].get("content", "")[:100]
-                reason = "Retrieved evidence indicates original assertion is outdated."
-                sources = [valid_urls[0]] if valid_urls else []
-            elif any(k in ev_text for k in ["actively maintained as stable", "unlimited public", "chairman and chief executive officer"]):
-                status = "current"
-                current_fact = ""
-                reason = "Retrieved evidence confirms current assertion."
-                sources = valid_urls[:2]
-            else:
-                status = "unverifiable"
-                current_fact = ""
-                reason = "Retrieved sources insufficient or conflicting."
-                sources = []
-
             analysis_results.append({
-                "id": cid,
-                "status": status,
-                "current_fact": current_fact,
-                "reason": reason,
-                "sources": sources
+                "id": cid, "status": "unverifiable", "current_fact": "",
+                "reason": "Evidence could not be analyzed reliably.", "sources": []
             })
 
     return analysis_results
@@ -526,7 +501,7 @@ def apply_rewrite(text: str, results: list[dict], local_model: Any = None, custo
             continue
         
         edit_urls = re.findall(r"\[.*?\]\((https?://[^\)]+)\)", replacement)
-        if edit_urls and not any(u in allowed_urls for u in edit_urls):
+        if not edit_urls or any(u not in allowed_urls for u in edit_urls):
             continue
 
         rewritten_text = rewritten_text.replace(original, replacement)
@@ -549,34 +524,13 @@ def extract_node(state: dict) -> dict:
     stable_facts: list[str] = []
     today = datetime.date.today().isoformat()
     resp = ask_json(extract_m, PROMPTS["extract"].replace("{today}", today), f"Text to analyze:\n{text}")
+    if not isinstance(resp, dict) or not isinstance(resp.get("claims"), list):
+        raise RuntimeError("Claim extraction returned an invalid response")
     if isinstance(resp, dict):
         if isinstance(resp.get("claims"), list):
             raw_claims = resp.get("claims")
         if isinstance(resp.get("stable_facts"), list):
             stable_facts = [str(s).strip() for s in resp.get("stable_facts") if str(s).strip()][:4]
-
-    if not raw_claims:
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?]) +", text) if len(s.strip()) > 10]
-        for idx, s in enumerate(sentences[:MAX_CLAIMS], 1):
-            s_low = s.lower()
-            is_ts = any(w in s_low for w in ["cost", "$", "price", "version", "ceo", "leader", "law", "member", "deprecat", "release"])
-            cat = "other"
-            if any(w in s_low for w in ["$", "price", "cost", "fee"]):
-                cat = "pricing"
-            elif any(w in s_low for w in ["version", "release", "deprecat"]):
-                cat = "version"
-            elif any(w in s_low for w in ["ceo", "leader", "chief"]):
-                cat = "leadership"
-            elif any(w in s_low for w in ["law", "member", "court"]):
-                cat = "law"
-            raw_claims.append({
-                "id": idx,
-                "title": "",
-                "text": s,
-                "category": cat,
-                "time_sensitive": is_ts,
-                "query": f"verify {s[:50]}"
-            })
 
     cleaned = clean_claims(raw_claims)
     if not cleaned:
@@ -722,11 +676,11 @@ app_graph = build_app_graph()
 def local_answer(question: str) -> str:
     m = model("LOCAL_MODEL", "openai/gpt-4o-mini", 0.7)
     if isinstance(m, dict) and not os.getenv("OPENAI_API_KEY") and not os.getenv("BIFROST_API_KEY"):
-        return f"Local LLM generated response to: {question}"
+        raise RuntimeError("Language model API key is not configured")
     try:
-        resp = ask_json(m, "Answer the user question factually in 2-3 sentences.", question)
+        resp = ask_json(m, 'Answer the user question factually in 2-3 sentences. Return JSON with an "answer" field.', question)
         if isinstance(resp, dict) and "answer" in resp:
             return str(resp["answer"])
     except Exception:
         pass
-    return f"Local LLM generated response to: {question}"
+    raise RuntimeError("Language model did not return an answer")
