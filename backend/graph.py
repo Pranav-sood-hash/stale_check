@@ -542,6 +542,8 @@ def extract_node(state: dict) -> dict:
     stable_facts: list[str] = []
     today = datetime.date.today().isoformat()
     resp = ask_json(extract_m, PROMPTS["extract"].replace("{today}", today), f"Text to analyze:\n{text}")
+    if not resp and not extract_m.get("api_key"):
+        raise RuntimeError("Language model API key is not configured")
     if isinstance(resp, dict):
         if isinstance(resp.get("claims"), list):
             raw_claims = resp.get("claims")

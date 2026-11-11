@@ -2223,7 +2223,7 @@
           if (res.ok) {
             const data = await res.json();
             const tavilyOk = data.env && data.env.TAVILY_API_KEY;
-            const llmOk = data.env && (data.env.BIFROST_API_KEY || data.env.OPENAI_API_KEY);
+            const llmOk = data.env && (data.env.BIFROST_KEY || data.env.BIFROST_API_KEY || data.env.OPENAI_API_KEY);
             backendHealthBadge.className = 'status-badge online';
             backendHealthText.textContent = `Gateway Online (${tavilyOk ? 'Tavily ✅' : 'Tavily ⚠️'}, ${llmOk ? 'LLM ✅' : 'LLM ⚠️'})`;
           } else {
@@ -2231,11 +2231,7 @@
           }
         } catch {
           backendHealthBadge.className = 'status-badge offline';
-          backendHealthText.textContent = 'Gateway: Offline (Mock Ready)';
-          if (new URLSearchParams(window.location.search).get('mock') == null) {
-            isMockMode = true;
-            updateMockBadge();
-          }
+          backendHealthText.textContent = 'Gateway: Offline';
         }
       }
 
