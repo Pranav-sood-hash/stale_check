@@ -54,8 +54,9 @@ PROMPTS = {
         "   - 'current': relevant evidence directly and explicitly confirms the claim.\n"
         "   - 'outdated': relevant evidence directly contradicts the claim and supports a newer fact. Provide that verified correction in 'current_fact'.\n"
         "   - 'unverifiable': no evidence, irrelevant evidence, insufficient evidence, or conflicting sources without clear resolution.\n"
-        "4. In 'reason', explain your finding based strictly on the evidence. Explicitly describe any conflicts between sources.\n"
-        "5. In 'sources', include ONLY the exact URLs from the provided evidence that were used for this determination.\n\n"
+        "4. If unsure or evidence is ambiguous or incomplete, set status to 'unverifiable'.\n"
+        "5. In 'reason', explain your finding based strictly on the evidence. Explicitly describe any conflicts between sources.\n"
+        "6. In 'sources', include ONLY the exact URLs from the provided evidence that were used for this determination.\n\n"
         "Output ONLY valid JSON with this exact schema:\n"
         "{\n"
         '  "analysis": [\n'
@@ -74,7 +75,7 @@ PROMPTS = {
         "- Score >= 70: 'Fresh'\n"
         "- Score < 30: 'Stale' (or directly contradicted)\n"
         "- Otherwise: 'Unverifiable'\n\n"
-        "Critically evaluate the analysis. Never mark a claim Fresh if it lacks supporting evidence.\n"
+        "Critically evaluate the analysis. Never mark a claim Fresh if it lacks supporting evidence. If unsure, assign verdict 'Unverifiable'.\n"
         "Output ONLY valid JSON with this exact schema:\n"
         "{\n"
         '  "judgments": [\n'
@@ -493,6 +494,8 @@ def apply_rewrite(text: str, results: list[dict], local_model: Any = None, custo
             f"Generate surgical replacements for stale sentences."
         )
         resp = ask_json(local_model, PROMPTS["rewrite"], user_prompt)
+        if not isinstance(resp, dict) or not isinstance(resp.get("edits"), list):
+            resp = ask_json(local_model, PROMPTS["rewrite"], user_prompt)
         if isinstance(resp, dict) and isinstance(resp.get("edits"), list):
             edits = resp.get("edits")
 
