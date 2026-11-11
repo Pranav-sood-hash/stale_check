@@ -186,33 +186,6 @@
       color: #b36b00;
     }
 
-    .mac-btn-toggle {
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 6px;
-      background: #ffffff;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      color: var(--text);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-
-    .mac-btn-toggle:hover {
-      background: #f7f7f9;
-      border-color: var(--border-strong);
-    }
-
-    .mac-btn-toggle.active {
-      background: rgba(0, 113, 227, 0.1);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
     .dot-indicator {
       width: 6px;
       height: 6px;
@@ -289,23 +262,22 @@
       flex-wrap: wrap;
     }
 
-    .mac-select {
-      background: #ffffff;
-      color: var(--text);
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius-sm);
-      padding: 6px 12px;
-      font-size: 0.8rem;
+    .char-counter {
+      font-size: 0.76rem;
       font-weight: 500;
-      font-family: var(--font-sans);
-      cursor: pointer;
-      outline: none;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      transition: all 0.2s ease;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      padding: 4px 10px;
+      background: var(--card-muted);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      letter-spacing: 0.02em;
     }
 
-    .mac-select:hover, .mac-select:focus {
-      border-color: var(--accent);
+    .btn-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .action-btn-ghost {
@@ -1392,9 +1364,6 @@
         <div id="backendHealthBadge" class="mac-tag health" title="Connectivity with FastAPI backend (/api/health)">
           <span class="dot-indicator"></span> <span id="backendHealthText">Checking Gateway…</span>
         </div>
-        <button id="mockToggleBtn" class="mac-btn-toggle" type="button" title="Toggle Mock Mode (for offline demonstration)">
-          <span class="dot-indicator"></span> Mock: <span id="mockStatusText">Off</span>
-        </button>
       </div>
     </div>
 
@@ -1420,27 +1389,7 @@
           </div>
 
           <div class="quick-actions">
-            <select id="presetScenarioSelect" class="mac-select" aria-label="Select demo scenario">
-              <option value="">Demo Presets…</option>
-              <option value="pricing">Scenario 1: Stale AI Pricing</option>
-              <option value="version">Scenario 2: Stale Tech Release</option>
-              <option value="fresh">Scenario 3: Verified Fresh Facts</option>
-              <option value="unverifiable">Scenario 4: Obscure / Unverifiable</option>
-            </select>
-            <button id="loadExampleBtn" class="action-btn-ghost" type="button">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-              Load example
-            </button>
-            <button id="clearInputBtn" class="action-btn-ghost" type="button">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-              </svg>
-              Clear
-            </button>
+            <span id="charCount" class="char-counter" title="Character counter (min 3, max 6000)">0 / 6000</span>
           </div>
         </div>
 
@@ -1464,8 +1413,23 @@
             <span>StaleCheck audits volatile claims like pricing, releases, laws, and leadership.</span>
           </div>
 
-          <button id="runBtn" class="btn-primary" type="button">
-            <span class="btn-spinner" aria-hidden="true"></span>
+          <div class="btn-group">
+            <button id="clearInputBtn" class="action-btn-ghost" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+              Clear
+            </button>
+            <button id="runBtn" class="btn-primary" type="button">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <svg class="btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span id="runBtnText">Run Verification</span>
+            </button>
+          </div>
+        </div>
             <svg class="btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
@@ -1617,27 +1581,27 @@
                   <tbody>
                     <tr>
                       <td>Extract</td>
-                      <td>Bifrost — Configured Model Gateway</td>
+                      <td>Extract — Bifrost AI Gateway</td>
                       <td id="archTraceExtract">—</td>
                     </tr>
                     <tr>
                       <td>Search</td>
-                      <td>Tavily Search API (depth: advanced) + SQLite Cache</td>
+                      <td>Search — Tavily + Evidence Cache</td>
                       <td id="archTraceSearch">—</td>
                     </tr>
                     <tr>
                       <td>Analyze</td>
-                      <td>Bifrost — Configured Model Gateway</td>
+                      <td>Analyze — Bifrost AI Gateway</td>
                       <td id="archTraceAnalyze">—</td>
                     </tr>
                     <tr>
                       <td>Judge</td>
-                      <td>Bifrost — Independent Model Evaluation</td>
+                      <td>Judge — Independent AI Model</td>
                       <td id="archTraceJudge">—</td>
                     </tr>
                     <tr>
                       <td>Rewrite</td>
-                      <td>Bifrost — Configured Model Gateway</td>
+                      <td>Rewrite — Bifrost AI Gateway</td>
                       <td id="archTraceRewrite">—</td>
                     </tr>
                   </tbody>
@@ -1719,164 +1683,7 @@
     (function() {
       'use strict';
 
-      const PRESETS = {
-        pricing: {
-          text: "GPT-4 costs $30 per million input tokens. Python 3.10 is the latest release.",
-          data: {
-            "answer": "GPT-4 costs $30 per million input tokens. Python 3.10 is the latest release.",
-            "overall": 22,
-            "cache_hits": 1,
-            "rewritten": "GPT-4 pricing has changed; see the sources. Python 3.14 is the latest stable release.",
-            "stable_facts": ["Python was conceived in the late 1980s."],
-            "trace": [
-              {"node": "extract", "ms": 800},
-              {"node": "search", "ms": 2400},
-              {"node": "analyze", "ms": 3100},
-              {"node": "judge", "ms": 2200},
-              {"node": "rewrite", "ms": 1500}
-            ],
-            "claims": [
-              {
-                "id": 1,
-                "text": "GPT-4 costs $30 per million input tokens",
-                "category": "pricing",
-                "verdict": "Stale",
-                "score": 14,
-                "current_fact": "Current pricing is significantly lower on official schedules",
-                "reason": "Official pricing documentation shows a reduced rate for GPT-4 series models.",
-                "sources": ["https://openai.com/pricing"],
-                "cached": false
-              },
-              {
-                "id": 2,
-                "text": "Python 3.10 is the latest release",
-                "category": "version",
-                "verdict": "Stale",
-                "score": 10,
-                "current_fact": "Python 3.12+ is the active production release",
-                "reason": "python.org downloads index confirms newer major releases.",
-                "sources": ["https://www.python.org/downloads/"],
-                "cached": true
-              }
-            ]
-          }
-        },
-        version: {
-          text: "Node.js 16 is the active Long Term Support release. React 17 is the recommended production version.",
-          data: {
-            "answer": "Node.js 16 is the active Long Term Support release. React 17 is the recommended production version.",
-            "overall": 12,
-            "cache_hits": 0,
-            "rewritten": "Node.js 16 has reached End-of-Life; modern LTS releases include Node.js 20 and 22. React 19 is the current major production release.",
-            "stable_facts": [],
-            "trace": [
-              {"node": "extract", "ms": 650},
-              {"node": "search", "ms": 1900},
-              {"node": "analyze", "ms": 2700},
-              {"node": "judge", "ms": 1800},
-              {"node": "rewrite", "ms": 1300}
-            ],
-            "claims": [
-              {
-                "id": 1,
-                "text": "Node.js 16 is the active Long Term Support release",
-                "category": "version",
-                "verdict": "Stale",
-                "score": 8,
-                "current_fact": "Node.js 16 reached end-of-life in September 2023; Node.js 20/22 are active LTS",
-                "reason": "Official Node.js release schedule confirms version 16 is obsolete.",
-                "sources": ["https://nodejs.org/en/about/previous-releases"],
-                "cached": false
-              },
-              {
-                "id": 2,
-                "text": "React 17 is the recommended production version",
-                "category": "version",
-                "verdict": "Stale",
-                "score": 15,
-                "current_fact": "React 19 is the current production release",
-                "reason": "React official website and documentation cite React 19.",
-                "sources": ["https://react.dev/blog"],
-                "cached": false
-              }
-            ]
-          }
-        },
-        fresh: {
-          text: "GPT-4o was introduced as OpenAI’s flagship omni-modal model. Python 3.12 and 3.13 are modern active releases.",
-          data: {
-            "answer": "GPT-4o was introduced as OpenAI’s flagship omni-modal model. Python 3.12 and 3.13 are modern active releases.",
-            "overall": 94,
-            "cache_hits": 2,
-            "rewritten": "GPT-4o was introduced as OpenAI’s flagship omni-modal model. Python 3.12 and 3.13 are modern active releases.",
-            "stable_facts": ["Python was created by Guido van Rossum."],
-            "trace": [
-              {"node": "extract", "ms": 720},
-              {"node": "search", "ms": 950},
-              {"node": "analyze", "ms": 2100},
-              {"node": "judge", "ms": 1600},
-              {"node": "rewrite", "ms": 900}
-            ],
-            "claims": [
-              {
-                "id": 1,
-                "text": "GPT-4o was introduced as OpenAI’s flagship omni-modal model",
-                "category": "other",
-                "verdict": "Fresh",
-                "score": 96,
-                "current_fact": "Verified current flagship multimodal release",
-                "reason": "Confirmed by OpenAI documentation and live media announcements.",
-                "sources": ["https://openai.com/index/hello-gpt-4o/"],
-                "cached": true
-              },
-              {
-                "id": 2,
-                "text": "Python 3.12 and 3.13 are modern active releases",
-                "category": "version",
-                "verdict": "Fresh",
-                "score": 92,
-                "current_fact": "Python 3.12 and 3.13 are active supported versions",
-                "reason": "python.org confirms active support lifecycle.",
-                "sources": ["https://devguide.python.org/versions/"],
-                "cached": true
-              }
-            ]
-          }
-        },
-        unverifiable: {
-          text: "The annual software tax for micro-agencies in New Atlantis is fixed at exactly 42 solar credits per year.",
-          data: {
-            "answer": "The annual software tax for micro-agencies in New Atlantis is fixed at exactly 42 solar credits per year.",
-            "overall": 40,
-            "cache_hits": 0,
-            "rewritten": "The claim regarding a software tax in New Atlantis could not be verified by live web sources.",
-            "stable_facts": [],
-            "trace": [
-              {"node": "extract", "ms": 680},
-              {"node": "search", "ms": 3200},
-              {"node": "analyze", "ms": 2500},
-              {"node": "judge", "ms": 1900},
-              {"node": "rewrite", "ms": 1200}
-            ],
-            "claims": [
-              {
-                "id": 1,
-                "text": "The annual software tax for micro-agencies in New Atlantis is fixed at exactly 42 solar credits per year",
-                "category": "law",
-                "verdict": "Unverifiable",
-                "score": 40,
-                "current_fact": "No authoritative legislative source found",
-                "reason": "Tavily search returned no verified governmental or municipal documentation.",
-                "sources": [],
-                "cached": false
-              }
-            ]
-          }
-        }
-      };
-
       let currentMode = 'check';
-      let isMockMode = new URLSearchParams(window.location.search).get('mock') === '1';
       let isRunning = false;
       let lastResultData = null;
       let currentFilter = 'all';
@@ -1885,14 +1692,11 @@
       const tabCheck = document.getElementById('tabCheck');
       const tabAsk = document.getElementById('tabAsk');
       const mainInput = document.getElementById('mainInput');
-      const loadExampleBtn = document.getElementById('loadExampleBtn');
+      const charCount = document.getElementById('charCount');
       const clearInputBtn = document.getElementById('clearInputBtn');
-      const presetScenarioSelect = document.getElementById('presetScenarioSelect');
       const runBtn = document.getElementById('runBtn');
       const runBtnText = document.getElementById('runBtnText');
       const modeHintText = document.getElementById('modeHintText');
-      const mockToggleBtn = document.getElementById('mockToggleBtn');
-      const mockStatusText = document.getElementById('mockStatusText');
       const backendHealthBadge = document.getElementById('backendHealthBadge');
       const backendHealthText = document.getElementById('backendHealthText');
       const alertBanner = document.getElementById('alertBanner');
@@ -1967,28 +1771,6 @@
         alertMessageText.textContent = '';
       }
 
-      function updateMockBadge() {
-        if (isMockMode) {
-          mockToggleBtn.classList.add('active');
-          mockStatusText.textContent = 'On';
-        } else {
-          mockToggleBtn.classList.remove('active');
-          mockStatusText.textContent = 'Off';
-        }
-      }
-
-      mockToggleBtn.addEventListener('click', () => {
-        isMockMode = !isMockMode;
-        updateMockBadge();
-        const url = new URL(window.location);
-        if (isMockMode) {
-          url.searchParams.set('mock', '1');
-        } else {
-          url.searchParams.delete('mock');
-        }
-        window.history.replaceState({}, '', url);
-      });
-
       async function checkBackendHealth() {
         try {
           const controller = new AbortController();
@@ -2006,7 +1788,7 @@
           }
         } catch {
           backendHealthBadge.className = 'mac-tag health offline';
-          backendHealthText.textContent = 'Gateway: Offline';
+          backendHealthText.textContent = 'Gateway Offline';
         }
       }
 
@@ -2033,29 +1815,23 @@
       tabCheck.addEventListener('click', () => setMode('check'));
       tabAsk.addEventListener('click', () => setMode('ask'));
 
-      presetScenarioSelect.addEventListener('change', () => {
-        const val = presetScenarioSelect.value;
-        if (val && PRESETS[val]) {
-          mainInput.value = PRESETS[val].text;
-          mainInput.focus();
-          hideAlert();
+      function updateCharCount() {
+        const len = mainInput.value.length;
+        if (charCount) {
+          charCount.textContent = `${len} / 6000`;
+          if (len > 6000) {
+            charCount.style.color = 'var(--stale)';
+          } else {
+            charCount.style.color = 'var(--muted)';
+          }
         }
-      });
+      }
 
-      loadExampleBtn.addEventListener('click', () => {
-        if (currentMode === 'check') {
-          presetScenarioSelect.value = 'pricing';
-          mainInput.value = PRESETS.pricing.text;
-        } else {
-          mainInput.value = 'What is the current pricing of GPT-4 and who is the current CEO of Twitter?';
-        }
-        mainInput.focus();
-        hideAlert();
-      });
+      mainInput.addEventListener('input', updateCharCount);
 
       clearInputBtn.addEventListener('click', () => {
         mainInput.value = '';
-        presetScenarioSelect.value = '';
+        updateCharCount();
         hideAlert();
         mainInput.focus();
       });
@@ -2438,44 +2214,38 @@
         window.print();
       });
 
-      async function runMockSimulation() {
-        resetStepper();
-        skeletonWrap.classList.add('visible');
-        resultsSection.classList.remove('visible');
-
-        const activePresetKey = presetScenarioSelect.value || 'pricing';
-        const scenario = PRESETS[activePresetKey] ? PRESETS[activePresetKey].data : PRESETS.pricing.data;
-
-        for (let i = 0; i < PIPELINE_NODES.length; i++) {
-          const node = PIPELINE_NODES[i];
-          updateStepActive(node);
-          const traceItem = scenario.trace.find(t => t.node === node);
-          const simulatedWait = traceItem ? Math.min(traceItem.ms / 4, 500) : 250;
-          await new Promise(r => setTimeout(r, simulatedWait));
-          updateStepCompleted(node, traceItem ? traceItem.ms : 200);
+      async function runStreamRequest(endpoint, payload) {
+        let streamStarted = false;
+        let response;
+        try {
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'text/event-stream'
+            },
+            body: JSON.stringify(payload)
+          });
+        } catch (fetchErr) {
+          const networkErr = new Error('Verification service is unavailable. Please check the backend connection.');
+          networkErr.isConnectionError = true;
+          throw networkErr;
         }
 
-        renderResults(scenario);
-      }
-
-      async function runStreamRequest(endpoint, payload) {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'text/event-stream'
-          },
-          body: JSON.stringify(payload)
-        });
-
         if (!response.ok) {
+          if (response.status === 404 || response.status === 405) {
+            const notFoundErr = new Error(`Streaming endpoint not available (${response.status})`);
+            notFoundErr.isRouteUnsupported = true;
+            throw notFoundErr;
+          }
+
           let errorMsg = `Server error ${response.status}: ${response.statusText}`;
           try {
             const errData = await response.json();
-            errorMsg = errData.error || errData.detail || errorMsg;
+            errorMsg = errData.detail || errData.error || errData.message || errorMsg;
           } catch {}
           const error = new Error(errorMsg);
-          error.status = response.status;
+          error.isServerError = true;
           throw error;
         }
 
@@ -2484,65 +2254,75 @@
         let buffer = '';
         let finalResponseData = null;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const blocks = buffer.split(/\r?\n\r?\n/);
-          buffer = blocks.pop();
+            streamStarted = true;
+            buffer += decoder.decode(value, { stream: true });
+            const blocks = buffer.split(/\r?\n\r?\n/);
+            buffer = blocks.pop();
 
-          for (const block of blocks) {
-            if (!block.trim()) continue;
+            for (const block of blocks) {
+              if (!block.trim()) continue;
 
-            const lines = block.split(/\r?\n/);
-            let eventType = 'message';
-            const dataLines = [];
+              const lines = block.split(/\r?\n/);
+              let eventType = 'message';
+              const dataLines = [];
 
-            for (const line of lines) {
-              if (line.startsWith('event:')) {
-                eventType = line.replace('event:', '').trim();
-              } else if (line.startsWith('data:')) {
-                dataLines.push(line.replace('data:', '').trim());
+              for (const line of lines) {
+                if (line.startsWith('event:')) {
+                  eventType = line.replace('event:', '').trim();
+                } else if (line.startsWith('data:')) {
+                  dataLines.push(line.replace('data:', '').trim());
+                }
               }
-            }
 
-            const dataStr = dataLines.join('\n');
-            if (!dataStr) continue;
+              const dataStr = dataLines.join('\n');
+              if (!dataStr) continue;
 
-            let parsed;
-            try {
-              parsed = JSON.parse(dataStr);
-            } catch (jsonErr) {
-              if (eventType === 'error') {
-                const sseErr = new Error(dataStr || 'Server reported a pipeline execution error');
+              let parsed;
+              try {
+                parsed = JSON.parse(dataStr);
+              } catch (jsonErr) {
+                if (eventType === 'error') {
+                  const sseErr = new Error(dataStr || 'Verification pipeline encountered an error');
+                  sseErr.isServerError = true;
+                  throw sseErr;
+                }
+                continue;
+              }
+
+              if (eventType === 'node') {
+                if (parsed && parsed.node) {
+                  updateStepCompleted(parsed.node, parsed.ms);
+                  const nextIdx = PIPELINE_NODES.indexOf(parsed.node) + 1;
+                  if (nextIdx < PIPELINE_NODES.length) {
+                    updateStepActive(PIPELINE_NODES[nextIdx]);
+                  }
+                }
+              } else if (eventType === 'done') {
+                finalResponseData = parsed;
+              } else if (eventType === 'error') {
+                const msg = parsed.message || parsed.error || 'Server reported an upstream service failure';
+                const sseErr = new Error(msg);
                 sseErr.isServerError = true;
                 throw sseErr;
               }
-              continue;
-            }
-
-            if (eventType === 'node') {
-              if (parsed && parsed.node) {
-                updateStepCompleted(parsed.node, parsed.ms);
-                const nextIdx = PIPELINE_NODES.indexOf(parsed.node) + 1;
-                if (nextIdx < PIPELINE_NODES.length) {
-                  updateStepActive(PIPELINE_NODES[nextIdx]);
-                }
-              }
-            } else if (eventType === 'done') {
-              finalResponseData = parsed;
-            } else if (eventType === 'error') {
-              const msg = parsed.message || parsed.error || 'Server reported an upstream service failure';
-              const sseErr = new Error(msg);
-              sseErr.isServerError = true;
-              throw sseErr;
             }
           }
+        } catch (readErr) {
+          if (readErr.isServerError) throw readErr;
+          const streamErr = new Error(readErr.message || 'Streaming was interrupted during processing');
+          streamErr.streamStarted = true;
+          throw streamErr;
         }
 
         if (!finalResponseData) {
-          throw new Error('Stream concluded without receiving final payload');
+          const incompleteErr = new Error('Verification stream concluded without receiving final payload');
+          incompleteErr.streamStarted = true;
+          throw incompleteErr;
         }
 
         return finalResponseData;
@@ -2581,23 +2361,26 @@
           return;
         }
 
+        if (text.length > 6000) {
+          showAlert('Input text exceeds the maximum limit of 6000 characters.', 'warning');
+          mainInput.focus();
+          return;
+        }
+
+        if (isRunning) return;
+
         hideAlert();
         isRunning = true;
         runBtn.disabled = true;
         runBtn.classList.add('loading');
         runBtnText.textContent = currentMode === 'check' ? 'Auditing…' : 'Generating & Checking…';
 
+        resetStepper();
+        updateStepActive('extract');
+        skeletonWrap.classList.add('visible');
+        resultsSection.classList.remove('visible');
+
         try {
-          if (isMockMode) {
-            await runMockSimulation();
-            return;
-          }
-
-          resetStepper();
-          updateStepActive('extract');
-          skeletonWrap.classList.add('visible');
-          resultsSection.classList.remove('visible');
-
           const streamEndpoint = currentMode === 'check' ? '/api/check/stream' : '/api/ask/stream';
           const standardEndpoint = currentMode === 'check' ? '/api/check' : '/api/ask';
 
@@ -2605,21 +2388,27 @@
           try {
             resultData = await runStreamRequest(streamEndpoint, { text });
           } catch (streamError) {
-            if (streamError.isServerError || (streamError.status && streamError.status !== 404 && streamError.status !== 405)) {
-              throw streamError;
-            }
-
-            resultData = await runStandardRequest(standardEndpoint, { text });
-            if (Array.isArray(resultData.trace)) {
-              resultData.trace.forEach(t => updateStepCompleted(t.node, t.ms));
+            // ONLY fallback to standard endpoint if streaming endpoint route is confirmed unsupported BEFORE any execution started
+            if (streamError.isRouteUnsupported && !streamError.streamStarted) {
+              resultData = await runStandardRequest(standardEndpoint, { text });
+              if (Array.isArray(resultData.trace)) {
+                resultData.trace.forEach(t => updateStepCompleted(t.node, t.ms));
+              } else {
+                PIPELINE_NODES.forEach(n => updateStepCompleted(n, null));
+              }
             } else {
-              PIPELINE_NODES.forEach(n => updateStepCompleted(n, null));
+              // Any server error, model error, Tavily error, connection error, or interrupted execution must NOT duplicate
+              throw streamError;
             }
           }
 
           renderResults(resultData);
         } catch (err) {
-          showAlert(`Verification failed: ${err.message || 'Verification service is unavailable. Please check the backend connection.'}`);
+          let displayMsg = err.message || 'Verification service is unavailable. Please check the backend connection.';
+          if (displayMsg.includes('Failed to fetch') || displayMsg.includes('NetworkError') || displayMsg.includes('Load failed')) {
+            displayMsg = 'Verification service is unavailable. Please check the backend connection.';
+          }
+          showAlert(`Verification failed: ${displayMsg}`, 'error');
           skeletonWrap.classList.remove('visible');
         } finally {
           isRunning = false;
@@ -2638,19 +2427,9 @@
         }
       });
 
-      updateMockBadge();
       setMode('check');
       checkBackendHealth();
-
-      // Offline URL mock support (?mock=1)
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('mock') === '1') {
-        const scenario = PRESETS.pricing.data;
-        setTimeout(() => {
-          mainInput.value = PRESETS.pricing.text;
-          renderResults(scenario);
-        }, 150);
-      }
+      updateCharCount();
     })();
   </script>
 </body>
