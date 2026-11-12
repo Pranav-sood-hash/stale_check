@@ -31,6 +31,7 @@ try:
     from backend.graph import app_graph, local_answer
 except ImportError:
     try:
+        # pyrefly: ignore[missing-import]
         from graph import app_graph, local_answer
     except ImportError:
         from .graph import app_graph, local_answer
