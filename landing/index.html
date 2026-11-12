@@ -424,7 +424,7 @@
       overflow: hidden;
       padding: 96px 48px 64px;
       text-align: center;
-      background: var(--bg) url('poster.jpg') center/cover no-repeat;
+      background: var(--bg) url('/poster.jpg') center/cover no-repeat;
     }
 
     .hero-bg-video {
@@ -433,7 +433,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      opacity: 0.55;
+      opacity: 0.75;
       pointer-events: none;
       z-index: 0;
     }
@@ -441,7 +441,7 @@
     .hero-veil {
       position: absolute;
       inset: 0;
-      background: rgba(248, 248, 246, 0.42);
+      background: rgba(248, 248, 246, 0.30);
       pointer-events: none;
       z-index: 0;
     }
@@ -1369,7 +1369,8 @@
 
         <!-- 2. HERO SECTION -->
         <section id="hero">
-          <video class="hero-bg-video" autoplay muted loop playsinline preload="metadata" poster="poster.jpg" aria-hidden="true" tabindex="-1">
+          <video class="hero-bg-video" autoplay muted loop playsinline preload="auto" poster="/poster.jpg" aria-hidden="true" tabindex="-1">
+            <source src="/hero-bg.mp4" type="video/mp4">
             <source src="hero-bg.mp4" type="video/mp4">
           </video>
           <div class="hero-veil"></div>

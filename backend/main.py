@@ -368,5 +368,21 @@ async def serve_root_page(request: Request):
         return FileResponse(landing_file)
     return FileResponse(os.path.join(frontend_path, "index.html"))
 
+@api.get("/hero-bg.mp4")
+@api.get("/landing/hero-bg.mp4")
+async def serve_hero_bg_video():
+    video_file = os.path.join(landing_path, "hero-bg.mp4")
+    if os.path.exists(video_file):
+        return FileResponse(video_file, media_type="video/mp4")
+    raise HTTPException(status_code=404, detail="Video not found")
+
+@api.get("/poster.jpg")
+@api.get("/landing/poster.jpg")
+async def serve_hero_poster():
+    poster_file = os.path.join(landing_path, "poster.jpg")
+    if os.path.exists(poster_file):
+        return FileResponse(poster_file, media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="Poster not found")
+
 if os.path.exists(frontend_path):
     api.mount("/static", StaticFiles(directory=frontend_path, html=True), name="static")
