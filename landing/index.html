@@ -420,13 +420,43 @@
 
     /* Hero Section */
     #hero {
+      position: relative;
+      overflow: hidden;
       padding: 96px 48px 64px;
       text-align: center;
+      background: var(--bg) url('poster.jpg') center/cover no-repeat;
+    }
+
+    .hero-bg-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-veil {
+      position: absolute;
+      inset: 0;
+      background: rgba(248, 248, 246, 0.42);
+      pointer-events: none;
+      z-index: 0;
     }
 
     .hero-content {
+      position: relative;
+      z-index: 1;
       max-width: 920px;
       margin: 0 auto;
+    }
+
+    @media (prefers-reduced-motion: reduce), (max-width: 640px) {
+      .hero-bg-video {
+        display: none;
+      }
     }
 
     .hero-actions {
@@ -1339,6 +1369,10 @@
 
         <!-- 2. HERO SECTION -->
         <section id="hero">
+          <video class="hero-bg-video" autoplay muted loop playsinline preload="metadata" poster="poster.jpg" aria-hidden="true" tabindex="-1">
+            <source src="hero-bg.mp4" type="video/mp4">
+          </video>
+          <div class="hero-veil"></div>
           <div class="hero-content">
             <span class="section-label">[ PS6 · STALE-ANSWER DETECTOR ]</span>
             <h1>Catch stale AI answers before your users do.</h1>
@@ -2292,6 +2326,19 @@
           }, { threshold: 0.2 });
 
           pipelineObserver.observe(pipelineContainer);
+        }
+
+        // 11. Hero Background Video Play/Pause Observer
+        const heroVideo = document.querySelector('.hero-bg-video');
+        if (heroVideo && 'IntersectionObserver' in window) {
+          const heroVideoObserver = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+              heroVideo.play().catch(() => {});
+            } else {
+              heroVideo.pause();
+            }
+          }, { threshold: 0.1 });
+          heroVideoObserver.observe(heroVideo);
         }
       } else {
         document.querySelectorAll('.reveal, .section-border').forEach(el => {
