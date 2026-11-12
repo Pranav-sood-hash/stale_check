@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StaleCheck — PS6 Stale-Answer Detector</title>
-  <meta name="description" content="StaleCheck intercepts AI answers, isolates time-sensitive claims, verifies them on live web sources via Tavily, and computes 0–100 freshness scores with independent Bifrost evaluation.">
+  <meta name="description"
+    content="StaleCheck intercepts AI answers, isolates time-sensitive claims, verifies them on live web sources via Tavily, and computes 0–100 freshness scores with independent Bifrost evaluation.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg: #f8f8f6;
@@ -29,7 +33,9 @@
       --ctx: #92400e;
     }
 
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
     }
 
@@ -54,10 +60,13 @@
       text-decoration: none;
       transition: color .15s ease;
     }
+
     a:hover {
       color: var(--accent-ink);
     }
-    a:focus-visible, button:focus-visible {
+
+    a:focus-visible,
+    button:focus-visible {
       outline: 2px solid var(--accent-ink);
       outline-offset: 3px;
     }
@@ -74,6 +83,7 @@
       z-index: 1000;
       transition: top 0.2s;
     }
+
     .skip-link:focus {
       top: 16px;
     }
@@ -85,9 +95,15 @@
       min-height: 100vh;
       animation: hatchDrift 60s linear infinite;
     }
+
     @keyframes hatchDrift {
-      0% { background-position: 0 0; }
-      100% { background-position: 56px 56px; }
+      0% {
+        background-position: 0 0;
+      }
+
+      100% {
+        background-position: 56px 56px;
+      }
     }
 
     /* Centered Column Container */
@@ -125,7 +141,10 @@
       margin: 0 auto 48px;
     }
 
-    h1, h2, h3, h4 {
+    h1,
+    h2,
+    h3,
+    h4 {
       color: var(--ink);
       font-weight: 700;
       line-height: 1.15;
@@ -180,15 +199,18 @@
       border-radius: 0;
       transition: background .15s, border-color .15s, color .15s;
     }
+
     .btn:hover {
       background: #fafaf8;
       border-color: var(--muted);
     }
+
     .btn.primary {
       background: var(--accent);
       border-color: var(--accent);
       color: var(--on-accent);
     }
+
     .btn.primary:hover {
       background: #1da37c;
       border-color: #1da37c;
@@ -199,7 +221,9 @@
     .tick {
       position: relative;
     }
-    .tick::before, .tick::after {
+
+    .tick::before,
+    .tick::after {
       content: "";
       position: absolute;
       width: 8px;
@@ -208,19 +232,25 @@
       transition: all .2s ease;
       pointer-events: none;
     }
+
     .tick::before {
       top: -5px;
       left: -5px;
       border-right: 0;
       border-bottom: 0;
     }
+
     .tick::after {
       bottom: -5px;
       right: -5px;
       border-left: 0;
       border-top: 0;
     }
-    .tick:hover::before, .tick:hover::after, .tick:focus-visible::before, .tick:focus-visible::after {
+
+    .tick:hover::before,
+    .tick:hover::after,
+    .tick:focus-visible::before,
+    .tick:focus-visible::after {
       width: 14px;
       height: 14px;
     }
@@ -233,12 +263,14 @@
       border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line);
     }
-    .grid > * {
+
+    .grid>* {
       background: var(--bg);
       padding: 32px;
       transition: background .2s ease;
     }
-    .grid > *:hover {
+
+    .grid>*:hover {
       background: #fcfcfb;
     }
 
@@ -248,6 +280,7 @@
       position: relative;
       scroll-margin-top: 70px;
     }
+
     @media (max-width: 768px) {
       section {
         padding: 56px 20px;
@@ -258,6 +291,7 @@
     .section-border {
       position: relative;
     }
+
     .section-border::before {
       content: "";
       position: absolute;
@@ -270,6 +304,7 @@
       transform: scaleX(0);
       transition: transform 0.6s cubic-bezier(.2, .7, .2, 1);
     }
+
     .section-border.in-view::before {
       transform: scaleX(1);
     }
@@ -284,6 +319,7 @@
       -webkit-backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--line);
     }
+
     .nav-inner {
       max-width: 1200px;
       margin: 0 auto;
@@ -293,6 +329,7 @@
       padding: 14px 28px;
       position: relative;
     }
+
     .brand-wrap {
       display: flex;
       align-items: center;
@@ -302,6 +339,7 @@
       letter-spacing: -0.02em;
       color: var(--ink);
     }
+
     .brand-bars-svg {
       display: block;
       width: 18px;
@@ -313,6 +351,7 @@
       align-items: center;
       gap: 24px;
     }
+
     nav.nav-links a {
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
@@ -321,6 +360,7 @@
       color: var(--muted);
       font-weight: 500;
     }
+
     nav.nav-links a:hover {
       color: var(--accent-ink);
     }
@@ -358,9 +398,11 @@
       nav.nav-links {
         display: none;
       }
+
       .menu-toggle {
         display: inline-block;
       }
+
       nav.nav-links.mobile-open {
         display: flex;
         flex-direction: column;
@@ -372,7 +414,7 @@
         border-bottom: 1px solid var(--line);
         padding: 20px 28px;
         gap: 16px;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
       }
     }
 
@@ -381,10 +423,12 @@
       padding: 96px 48px 64px;
       text-align: center;
     }
+
     .hero-content {
       max-width: 920px;
       margin: 0 auto;
     }
+
     .hero-actions {
       display: flex;
       align-items: center;
@@ -406,11 +450,13 @@
       font-size: 13.5px;
       line-height: 1.6;
     }
+
     .terminal-comment {
       color: var(--accent-ink);
       margin-bottom: 6px;
       font-weight: 700;
     }
+
     .terminal-prompt {
       color: var(--ink);
       display: flex;
@@ -418,6 +464,7 @@
       flex-wrap: wrap;
       gap: 6px;
     }
+
     .terminal-prompt .cursor {
       display: inline-block;
       width: 8px;
@@ -426,10 +473,20 @@
       vertical-align: middle;
       animation: blink 1s step-end infinite;
     }
+
     @keyframes blink {
-      0%, 50% { opacity: 1; }
-      51%, 100% { opacity: 0; }
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0;
+      }
     }
+
     .terminal-output {
       color: var(--muted);
       font-size: 12px;
@@ -447,11 +504,13 @@
       border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line);
     }
+
     .stat-cell {
       background: var(--bg);
       padding: 24px 20px;
       text-align: left;
     }
+
     .stat-var {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11.5px;
@@ -460,6 +519,7 @@
       letter-spacing: .08em;
       margin-bottom: 6px;
     }
+
     .stat-val {
       font-family: 'JetBrains Mono', monospace;
       font-size: 19px;
@@ -467,11 +527,13 @@
       color: var(--accent-ink);
       letter-spacing: .02em;
     }
+
     @media (max-width: 800px) {
       .stat-strip {
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
     @media (max-width: 480px) {
       .stat-strip {
         grid-template-columns: 1fr;
@@ -496,17 +558,20 @@
     .needed-grid {
       grid-template-columns: repeat(3, 1fr);
     }
+
     @media (max-width: 860px) {
       .needed-grid {
         grid-template-columns: 1fr;
       }
     }
+
     .needed-card .card-step {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       color: var(--label);
       margin-bottom: 8px;
     }
+
     .diff-sample {
       margin-top: 18px;
       padding: 14px;
@@ -515,12 +580,14 @@
       font-size: 14px;
       font-family: 'Space Grotesk', sans-serif;
     }
+
     .diff-sample .old {
       color: var(--stale);
       text-decoration: line-through;
       display: block;
       margin-bottom: 6px;
     }
+
     .diff-sample .new {
       color: var(--fresh);
       font-weight: 700;
@@ -536,15 +603,18 @@
       border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line);
     }
+
     @media (max-width: 860px) {
       .compare-wrap {
         grid-template-columns: 1fr;
       }
     }
+
     .compare-col {
       background: var(--bg);
       padding: 40px 32px;
     }
+
     .compare-badge {
       display: inline-block;
       padding: 4px 10px;
@@ -556,11 +626,13 @@
       margin-bottom: 20px;
       border: 1px solid;
     }
+
     .compare-badge.stale {
       background: var(--stale-bg);
       color: var(--stale);
       border-color: #fca5a5;
     }
+
     .compare-badge.fresh {
       background: var(--fresh-bg);
       color: var(--fresh);
@@ -585,12 +657,14 @@
       font-size: 16px;
       line-height: 1.7;
     }
+
     .strike-old {
       position: relative;
       color: var(--stale);
       text-decoration: none;
       display: inline-block;
     }
+
     .strike-old::after {
       content: "";
       position: absolute;
@@ -603,6 +677,7 @@
       transform: scaleX(0);
       transition: transform 0.6s cubic-bezier(.2, .7, .2, 1);
     }
+
     .in-view .strike-old::after {
       transform: scaleX(1);
     }
@@ -616,6 +691,7 @@
       padding: 0 4px;
       background: transparent;
     }
+
     .highlight-new::before {
       content: "";
       position: absolute;
@@ -626,6 +702,7 @@
       transition: transform 0.5s cubic-bezier(.2, .7, .2, 1) 0.5s;
       z-index: -1;
     }
+
     .in-view .highlight-new::before {
       transform: scaleX(1);
     }
@@ -642,11 +719,13 @@
       grid-template-columns: repeat(5, 1fr);
       position: relative;
     }
+
     @media (max-width: 990px) {
       .nodes-grid {
         grid-template-columns: 1fr;
       }
     }
+
     .node-card {
       position: relative;
       display: flex;
@@ -654,6 +733,7 @@
       justify-content: space-between;
       min-height: 240px;
     }
+
     .node-num {
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
@@ -661,11 +741,13 @@
       font-weight: 700;
       margin-bottom: 8px;
     }
+
     .node-tool {
       font-size: 14px;
       color: var(--muted);
       margin: 8px 0 16px;
     }
+
     .node-tag {
       align-self: flex-start;
       font-family: 'JetBrains Mono', monospace;
@@ -676,11 +758,14 @@
       color: var(--accent-ink);
       font-weight: 700;
     }
+
     .node-card.packet-active {
       background: #f4faf7;
       border: 1px solid var(--accent);
     }
-    .node-card.packet-active::before, .node-card.packet-active::after {
+
+    .node-card.packet-active::before,
+    .node-card.packet-active::after {
       width: 14px;
       height: 14px;
     }
@@ -697,6 +782,7 @@
       flex-wrap: wrap;
       gap: 12px;
     }
+
     .bifrost-label {
       font-family: 'JetBrains Mono', monospace;
       font-size: 12.5px;
@@ -708,6 +794,7 @@
       grid-template-columns: 1fr 1fr;
       border-top: 0;
     }
+
     @media (max-width: 768px) {
       .sub-nodes-grid {
         grid-template-columns: 1fr;
@@ -721,6 +808,7 @@
       gap: 32px;
       align-items: start;
     }
+
     @media (max-width: 940px) {
       .annotated-layout {
         grid-template-columns: 1fr;
@@ -732,23 +820,27 @@
       flex-direction: column;
       gap: 20px;
     }
+
     .step-box {
       background: var(--white);
       border: 1px solid var(--line);
       padding: 24px;
     }
+
     .step-header {
       display: flex;
       align-items: baseline;
       gap: 12px;
       margin-bottom: 8px;
     }
+
     .step-num {
       font-family: 'JetBrains Mono', monospace;
       font-size: 18px;
       font-weight: 700;
       color: var(--accent-ink);
     }
+
     .step-title {
       font-weight: 700;
       font-size: 17px;
@@ -761,6 +853,7 @@
       padding: 28px;
       position: relative;
     }
+
     .mock-top {
       display: flex;
       align-items: center;
@@ -769,11 +862,13 @@
       padding-bottom: 18px;
       margin-bottom: 20px;
     }
+
     .score-badge-circle {
       display: flex;
       align-items: center;
       gap: 14px;
     }
+
     .score-ring {
       width: 58px;
       height: 58px;
@@ -786,6 +881,7 @@
       font-size: 22px;
       color: var(--stale);
     }
+
     .score-meta .status-pill {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
@@ -796,12 +892,14 @@
       display: inline-block;
       margin-bottom: 4px;
     }
+
     .claim-item {
       border: 1px solid var(--line);
       padding: 16px;
       margin-bottom: 14px;
       background: var(--bg);
     }
+
     .claim-header {
       display: flex;
       align-items: center;
@@ -809,20 +907,24 @@
       margin-bottom: 8px;
       font-size: 14px;
     }
+
     .badge-chip {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 700;
       padding: 2px 6px;
     }
+
     .badge-chip.stale {
       background: var(--stale-bg);
       color: var(--stale);
     }
+
     .badge-chip.fresh {
       background: var(--fresh-bg);
       color: var(--fresh);
     }
+
     .callout-tag {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
@@ -841,6 +943,7 @@
       margin-top: 10px;
       font-size: 13.5px;
     }
+
     .evidence-title {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10.5px;
@@ -848,6 +951,7 @@
       color: var(--label);
       margin-bottom: 6px;
     }
+
     .evidence-meta {
       display: flex;
       align-items: center;
@@ -865,9 +969,11 @@
       padding-top: 14px;
       font-size: 14px;
     }
+
     .ov-row {
       margin-bottom: 8px;
     }
+
     .ov-label {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
@@ -881,12 +987,14 @@
     .band-bar-wrap {
       margin: 40px 0;
     }
+
     .band-bar {
       height: 32px;
       border: 1px solid var(--line);
       background: var(--line);
       overflow: hidden;
     }
+
     .band-bar-fill {
       display: flex;
       width: 100%;
@@ -896,9 +1004,11 @@
       transform: scaleX(0);
       transition: transform 0.8s cubic-bezier(.2, .7, .2, 1);
     }
+
     .in-view .band-bar-fill {
       transform: scaleX(1);
     }
+
     .band-segment {
       display: flex;
       align-items: center;
@@ -909,24 +1019,29 @@
       letter-spacing: .06em;
       text-transform: uppercase;
     }
+
     .band-stale {
       flex: 30;
       background: var(--stale-bg);
       color: var(--stale);
     }
+
     .band-ctx {
       flex: 40;
       background: var(--ctx-bg);
       color: var(--ctx);
     }
+
     .band-fresh {
       flex: 30;
       background: var(--fresh-bg);
       color: var(--fresh);
     }
+
     .score-rules-grid {
       grid-template-columns: repeat(2, 1fr);
     }
+
     @media (max-width: 768px) {
       .score-rules-grid {
         grid-template-columns: 1fr;
@@ -940,6 +1055,7 @@
       background: var(--white);
       margin-bottom: 40px;
     }
+
     table.compare-table {
       width: 100%;
       border-collapse: collapse;
@@ -947,17 +1063,23 @@
       font-size: 14.5px;
       min-width: 760px;
     }
-    table.compare-table th, table.compare-table td {
+
+    table.compare-table th,
+    table.compare-table td {
       padding: 16px 18px;
       border-bottom: 1px solid var(--line);
       border-right: 1px solid var(--line);
     }
-    table.compare-table th:last-child, table.compare-table td:last-child {
+
+    table.compare-table th:last-child,
+    table.compare-table td:last-child {
       border-right: 0;
     }
+
     table.compare-table tr:last-child td {
       border-bottom: 0;
     }
+
     table.compare-table th {
       background: #f4f4f2;
       font-family: 'JetBrains Mono', monospace;
@@ -967,15 +1089,18 @@
       text-transform: uppercase;
       letter-spacing: .06em;
     }
+
     table.compare-table td.brand-row {
       font-weight: 700;
       background: #fafaf8;
     }
+
     table.compare-table tr.highlight-stalecheck td {
       background: #f4faf7;
       font-weight: 700;
       color: var(--ink);
     }
+
     .indicator-icon {
       display: inline-flex;
       align-items: center;
@@ -985,11 +1110,13 @@
     .diff-cards-grid {
       grid-template-columns: repeat(5, 1fr);
     }
+
     @media (max-width: 1024px) {
       .diff-cards-grid {
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
     @media (max-width: 600px) {
       .diff-cards-grid {
         grid-template-columns: 1fr;
@@ -1000,15 +1127,18 @@
     .stack-grid {
       grid-template-columns: repeat(4, 1fr);
     }
+
     @media (max-width: 860px) {
       .stack-grid {
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
     .stack-card {
       text-align: center;
       padding: 28px 16px;
     }
+
     .stack-name {
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 700;
@@ -1016,6 +1146,7 @@
       letter-spacing: -0.01em;
       margin-bottom: 6px;
     }
+
     .stack-badge {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10.5px;
@@ -1030,6 +1161,7 @@
       grid-template-columns: 1fr 1fr;
       border-top: 0;
     }
+
     @media (max-width: 768px) {
       .sponsor-explanations {
         grid-template-columns: 1fr;
@@ -1040,6 +1172,7 @@
     .limits-grid {
       grid-template-columns: repeat(2, 1fr);
     }
+
     @media (max-width: 768px) {
       .limits-grid {
         grid-template-columns: 1fr;
@@ -1050,21 +1183,25 @@
     .team-grid {
       grid-template-columns: repeat(4, 1fr);
     }
+
     @media (max-width: 900px) {
       .team-grid {
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
     @media (max-width: 500px) {
       .team-grid {
         grid-template-columns: 1fr;
       }
     }
+
     .team-name {
       font-weight: 700;
       font-size: 18px;
       margin-bottom: 6px;
     }
+
     .team-role {
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
@@ -1072,6 +1209,7 @@
       font-weight: 700;
       margin-bottom: 8px;
     }
+
     .team-file {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
@@ -1097,6 +1235,7 @@
       font-size: 12px;
       color: var(--muted);
     }
+
     @media (max-width: 768px) {
       footer {
         padding: 24px 20px;
@@ -1112,6 +1251,7 @@
       transition: opacity 0.5s cubic-bezier(.2, .7, .2, 1), transform 0.5s cubic-bezier(.2, .7, .2, 1);
       transition-delay: calc(var(--i, 0) * 80ms);
     }
+
     .reveal.in-view {
       opacity: 1;
       transform: translateY(0);
@@ -1119,34 +1259,45 @@
 
     /* Reduced Motion Compliance */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
+
+      *,
+      *::before,
+      *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
+
       .outer {
         animation: none !important;
       }
+
       .section-border::before {
         transform: scaleX(1) !important;
       }
+
       .band-bar-fill {
         transform: scaleX(1) !important;
       }
+
       .reveal {
         opacity: 1 !important;
         transform: none !important;
       }
-      .strike-old::after, .highlight-new::before {
+
+      .strike-old::after,
+      .highlight-new::before {
         transform: scaleX(1) !important;
       }
+
       .terminal-prompt .cursor {
         animation: none !important;
       }
     }
   </style>
 </head>
+
 <body>
   <a href="#main" class="skip-link">Skip to content</a>
 
@@ -1175,9 +1326,10 @@
           </nav>
 
           <div class="nav-actions">
-            <a href="[YOUR GITHUB URL]" class="btn" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://github.com/Pranav-sood-hash/stale_check" class="btn" target="_blank" rel="noopener noreferrer" data-github="[YOUR GITHUB URL]">GitHub</a>
             <a href="/app" class="btn primary tick" data-demo="[YOUR DEMO URL]">Try the demo</a>
-            <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mainNav" aria-label="Toggle navigation menu">Menu</button>
+            <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mainNav"
+              aria-label="Toggle navigation menu">Menu</button>
           </div>
         </div>
         <div class="scroll-progress" id="scrollProgressBar" aria-hidden="true"></div>
@@ -1192,7 +1344,8 @@
             <h1>Catch stale AI answers before your users do.</h1>
             <p class="lead">
               Local and frontier models reason brilliantly, but their knowledge is frozen at training time.<br>
-              StaleCheck isolates volatile claims, re-verifies them against live web sources, and corrects answers with citations.
+              StaleCheck isolates volatile claims, re-verifies them against live web sources, and corrects answers with
+              citations.
             </p>
             <div class="hero-actions">
               <a href="/app" class="btn primary tick" data-demo="[YOUR DEMO URL]">Check an answer</a>
@@ -1238,10 +1391,14 @@
             <span class="section-label">[ THE MOTIVE ]</span>
             <h2 id="heading-motive">Models stop learning the day training ends.</h2>
             <p class="lead">
-              Think of an LLM like a brilliant student who memorized last year’s textbook from cover to cover. When you ask them a question, they answer with total confidence. But if yesterday’s pricing was raised, a framework released a major version, or an executive stepped down, they have no way of knowing.
+              Think of an LLM like a brilliant student who memorized last year’s textbook from cover to cover. When you
+              ask them a question, they answer with total confidence. But if yesterday’s pricing was raised, a framework
+              released a major version, or an executive stepped down, they have no way of knowing.
             </p>
             <p class="subtext">
-              Local and offline models are private and cheap to run, while retraining frontier models costs millions. StaleCheck keeps the cheap local model as the reasoning brain and adds an automated, live fact-checking layer over every volatile output.
+              Local and offline models are private and cheap to run, while retraining frontier models costs millions.
+              StaleCheck keeps the cheap local model as the reasoning brain and adds an automated, live fact-checking
+              layer over every volatile output.
             </p>
             <div class="mono-pull-quote tick">
               Facts come from live sources. Models only reason.
@@ -1261,7 +1418,8 @@
             <div class="needed-card reveal" style="--i:1">
               <div class="card-step">[ 01 · VOLATILE ASSETS ]</div>
               <h3>Prices change.</h3>
-              <p class="subtext">SaaS tiers, token costs, subscriptions, and API rates change without announcing themselves to model weights.</p>
+              <p class="subtext">SaaS tiers, token costs, subscriptions, and API rates change without announcing
+                themselves to model weights.</p>
               <div class="diff-sample">
                 <span class="old">The answer says $19 per month.</span>
                 <span class="new">The pricing page now says $29 with revised seats.</span>
@@ -1271,7 +1429,8 @@
             <div class="needed-card reveal" style="--i:2">
               <div class="card-step">[ 02 · DRIFTING CODE ]</div>
               <h3>Versions move on.</h3>
-              <p class="subtext">SDKs deprecate methods, runtimes drop LTS support, and new stable releases become the default standard.</p>
+              <p class="subtext">SDKs deprecate methods, runtimes drop LTS support, and new stable releases become the
+                default standard.</p>
               <div class="diff-sample">
                 <span class="old">The answer cites Python 3.10 as latest.</span>
                 <span class="new">python.org confirms 3.12+ is the active release.</span>
@@ -1281,7 +1440,8 @@
             <div class="needed-card reveal" style="--i:3">
               <div class="card-step">[ 03 · SHIFTING GOVERNANCE ]</div>
               <h3>People &amp; laws change.</h3>
-              <p class="subtext">Founders step down, regulations pass into law, and executive leadership turns over in corporate restructurings.</p>
+              <p class="subtext">Founders step down, regulations pass into law, and executive leadership turns over in
+                corporate restructurings.</p>
               <div class="diff-sample">
                 <span class="old">The answer names the former CEO as active.</span>
                 <span class="new">Corporate filings confirm new leadership appointed.</span>
@@ -1303,7 +1463,8 @@
               <span class="compare-badge stale">Without StaleCheck</span>
               <div class="example-tag">[ Illustrative example ]</div>
               <h3>Confident. Stale. Silent.</h3>
-              <p class="subtext">The model generates outdated facts with uniform certainty. There are no flags, no verification dates, and no sources for the user to double check.</p>
+              <p class="subtext">The model generates outdated facts with uniform certainty. There are no flags, no
+                verification dates, and no sources for the user to double check.</p>
               <div class="nova-box">
                 "Nova SDK version 2.4 is available at $49 per seat. It requires Node 14 runtime."
               </div>
@@ -1313,9 +1474,15 @@
               <span class="compare-badge fresh">With StaleCheck</span>
               <div class="example-tag">[ Illustrative example ]</div>
               <h3>Audited. Scored. Grounded.</h3>
-              <p class="subtext">Claims are extracted, searched on Tavily, judged for freshness, and surgically rewritten with verified inline citations.</p>
+              <p class="subtext">Claims are extracted, searched on Tavily, judged for freshness, and surgically
+                rewritten with verified inline citations.</p>
               <div class="nova-box">
-                "Nova SDK version <del class="strike-old">2.4</del> <ins class="highlight-new">3.1</ins> is available at <del class="strike-old">$49</del> <ins class="highlight-new">$39</ins> per seat <a href="https://example.com/nova-pricing" class="src-link" target="_blank" rel="noopener noreferrer">[source]</a>. It requires Node <del class="strike-old">14</del> <ins class="highlight-new">20 LTS</ins> <a href="https://example.com/nova-docs" class="src-link" target="_blank" rel="noopener noreferrer">[source]</a>."
+                "Nova SDK version <del class="strike-old">2.4</del> <ins class="highlight-new">3.1</ins> is available at
+                <del class="strike-old">$49</del> <ins class="highlight-new">$39</ins> per seat <a
+                  href="https://example.com/nova-pricing" class="src-link" target="_blank"
+                  rel="noopener noreferrer">[source]</a>. It requires Node <del class="strike-old">14</del> <ins
+                  class="highlight-new">20 LTS</ins> <a href="https://example.com/nova-docs" class="src-link"
+                  target="_blank" rel="noopener noreferrer">[source]</a>."
               </div>
             </div>
           </div>
@@ -1327,7 +1494,8 @@
             <span class="section-label">[ HOW IT WORKS ]</span>
             <h2 id="heading-pipeline">The 5-node verification graph.</h2>
             <p class="subtext">
-              Built on LangGraph. Each node owns one strict responsibility. If no expiring claim exists, execution stops early.
+              Built on LangGraph. Each node owns one strict responsibility. If no expiring claim exists, execution stops
+              early.
             </p>
           </div>
 
@@ -1336,7 +1504,8 @@
               <div>
                 <div class="node-num">01 · EXTRACT</div>
                 <h3>Extract</h3>
-                <p class="subtext">Finds claims that can expire (prices, versions, leaders, laws). Separates timeless facts.</p>
+                <p class="subtext">Finds claims that can expire (prices, versions, leaders, laws). Separates timeless
+                  facts.</p>
                 <div class="node-tool">Tool: Small LLM</div>
               </div>
               <span class="node-tag">Small model</span>
@@ -1385,7 +1554,8 @@
 
           <div class="bifrost-strip reveal" style="--i:1">
             <span class="bifrost-label">[ BIFROST GATEWAY ]</span>
-            <span class="subtext">Every model call goes through one gateway: unified routing, provider failover, and metrics.</span>
+            <span class="subtext">Every model call goes through one gateway: unified routing, provider failover, and
+              metrics.</span>
           </div>
 
           <div class="grid sub-nodes-grid">
@@ -1393,13 +1563,15 @@
               <h3>Memory Cache (SQLite)</h3>
               <p class="subtext">
                 Repeat claims skip the live search entirely. Time-to-live is tailored per category:
-                <strong>pricing: 6h</strong>, <strong>version: 12h</strong>, <strong>leadership: 24h</strong>, <strong>law: 72h</strong>, <strong>other: 24h</strong>.
+                <strong>pricing: 6h</strong>, <strong>version: 12h</strong>, <strong>leadership: 24h</strong>,
+                <strong>law: 72h</strong>, <strong>other: 24h</strong>.
               </p>
             </div>
             <div class="reveal" style="--i:3">
               <h3>Early Exit Optimization</h3>
               <p class="subtext">
-                If the Extract node finds no claims that can expire (e.g. math theorems, timeless history), the pipeline halts immediately with <code>overall: null</code>. No wasted tokens.
+                If the Extract node finds no claims that can expire (e.g. math theorems, timeless history), the pipeline
+                halts immediately with <code>overall: null</code>. No wasted tokens.
               </p>
             </div>
           </div>
@@ -1444,7 +1616,8 @@
                   </div>
                   <div class="evidence-meta">
                     <span>Published: 2026-03-01</span>
-                    <a href="https://example.com/nova-pricing" class="src-link" target="_blank" rel="noopener noreferrer">https://example.com/nova-pricing ↗</a>
+                    <a href="https://example.com/nova-pricing" class="src-link" target="_blank"
+                      rel="noopener noreferrer">https://example.com/nova-pricing ↗</a>
                   </div>
                 </div>
                 <div class="callout-tag">← (2) Verdict Badge &amp; (3) Live Evidence with Date</div>
@@ -1469,7 +1642,9 @@
                 <div class="ov-row">
                   <span class="ov-label">VERIFIED:</span>
                   <span class="subtext" style="font-size:13.5px; color:var(--ink); font-weight:500;">
-                    Nova SDK costs <ins class="highlight-new">$39</ins> per seat <a href="#" class="src-link">[source]</a> on Node <ins class="highlight-new">20 LTS</ins> <a href="#" class="src-link">[source]</a>.
+                    Nova SDK costs <ins class="highlight-new">$39</ins> per seat <a href="#"
+                      class="src-link">[source]</a> on Node <ins class="highlight-new">20 LTS</ins> <a href="#"
+                      class="src-link">[source]</a>.
                   </span>
                 </div>
               </div>
@@ -1481,7 +1656,8 @@
                   <span class="step-num">1</span>
                   <span class="step-title">Paste an answer</span>
                 </div>
-                <p class="subtext">Paste any AI answer you want to verify, or enter a prompt for your local Ollama LLM to answer first.</p>
+                <p class="subtext">Paste any AI answer you want to verify, or enter a prompt for your local Ollama LLM
+                  to answer first.</p>
               </div>
 
               <div class="step-box reveal" style="--i:3">
@@ -1489,7 +1665,8 @@
                   <span class="step-num">2</span>
                   <span class="step-title">Watch the five steps run</span>
                 </div>
-                <p class="subtext">Server-Sent Events (SSE) stream progress in real time as each graph node executes and reports latency.</p>
+                <p class="subtext">Server-Sent Events (SSE) stream progress in real time as each graph node executes and
+                  reports latency.</p>
               </div>
 
               <div class="step-box reveal" style="--i:4">
@@ -1497,7 +1674,8 @@
                   <span class="step-num">3</span>
                   <span class="step-title">Copy the corrected answer</span>
                 </div>
-                <p class="subtext">Inspect claim-level reasoning, click live source links, or copy the word-level diff directly into your work.</p>
+                <p class="subtext">Inspect claim-level reasoning, click live source links, or copy the word-level diff
+                  directly into your work.</p>
               </div>
             </div>
           </div>
@@ -1512,7 +1690,8 @@
           </div>
 
           <div class="band-bar-wrap reveal" style="--i:1">
-            <div class="band-bar" role="img" aria-label="Score range: 0 to 29 Stale, 30 to 69 Needs Context, 70 to 100 Fresh">
+            <div class="band-bar" role="img"
+              aria-label="Score range: 0 to 29 Stale, 30 to 69 Needs Context, 70 to 100 Fresh">
               <div class="band-bar-fill">
                 <div class="band-segment band-stale">0–29 · STALE</div>
                 <div class="band-segment band-ctx">30–69 · NEEDS CONTEXT</div>
@@ -1524,19 +1703,23 @@
           <div class="grid score-rules-grid">
             <div class="reveal" style="--i:2">
               <h3>No evidence is never Fresh</h3>
-              <p class="subtext">If web search returns conflicting or unauthoritative results, the claim is marked Unverifiable and capped at Needs Context (50 max). It is never assumed fresh.</p>
+              <p class="subtext">If web search returns conflicting or unauthoritative results, the claim is marked
+                Unverifiable and capped at Needs Context (50 max). It is never assumed fresh.</p>
             </div>
             <div class="reveal" style="--i:3">
               <h3>Publication recency decay</h3>
-              <p class="subtext">Undated pages are penalized and capped at 85. Older sources incur progressive score deductions to prioritize recent developments.</p>
+              <p class="subtext">Undated pages are penalized and capped at 85. Older sources incur progressive score
+                deductions to prioritize recent developments.</p>
             </div>
             <div class="reveal" style="--i:4">
               <h3>Independent judge model</h3>
-              <p class="subtext">The judge model is strictly configured from a different provider than the analyst model to eliminate self-grading bias.</p>
+              <p class="subtext">The judge model is strictly configured from a different provider than the analyst model
+                to eliminate self-grading bias.</p>
             </div>
             <div class="reveal" style="--i:5">
               <h3>Empty claims yield null</h3>
-              <p class="subtext">Answers with no time-sensitive claims report an overall score of <code>null</code> (—) rather than a false 100% perfection rating.</p>
+              <p class="subtext">Answers with no time-sensitive claims report an overall score of <code>null</code> (—)
+                rather than a false 100% perfection rating.</p>
             </div>
           </div>
         </section>
@@ -1566,32 +1749,44 @@
                 <tr>
                   <td class="brand-row">Ask the same model again</td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
@@ -1599,32 +1794,44 @@
                 <tr>
                   <td class="brand-row">A document chatbot (RAG)</td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
@@ -1632,32 +1839,44 @@
                 <tr>
                   <td class="brand-row">Checking by hand</td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img" aria-label="Not supported">
+                    <svg class="indicator-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                      stroke="var(--muted)" stroke-width="2" stroke-linecap="round" role="img"
+                      aria-label="Not supported">
                       <line x1="3" y1="7" x2="11" y2="7"></line>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
@@ -1665,32 +1884,44 @@
                 <tr class="highlight-stalecheck">
                   <td class="brand-row">StaleCheck</td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
                   <td>
-                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Supported">
+                    <svg class="indicator-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="var(--accent-ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                      role="img" aria-label="Supported">
                       <polyline points="3 8 6.5 11.5 13 4"></polyline>
                     </svg>
                   </td>
@@ -1770,13 +2001,17 @@
             <div class="reveal" style="--i:1">
               <h3>How Tavily contributes</h3>
               <p class="subtext">
-                Tavily is the sole source of factual truth in StaleCheck. It performs depth-first live web search, normalizes publication timestamps for recency scoring, deduplicates domains, and provides verified source URLs so every claim is anchored in live reality.
+                Tavily is the sole source of factual truth in StaleCheck. It performs depth-first live web search,
+                normalizes publication timestamps for recency scoring, deduplicates domains, and provides verified
+                source URLs so every claim is anchored in live reality.
               </p>
             </div>
             <div class="reveal" style="--i:2">
               <h3>How Bifrost contributes</h3>
               <p class="subtext">
-                Bifrost by Maxim AI serves as the universal model gateway. It unifies OpenAI, Anthropic, and open-source models under one endpoint, routes independent judging across separate providers, handles virtual-key failovers, and provides observability.
+                Bifrost by Maxim AI serves as the universal model gateway. It unifies OpenAI, Anthropic, and open-source
+                models under one endpoint, routes independent judging across separate providers, handles virtual-key
+                failovers, and provides observability.
               </p>
             </div>
           </div>
@@ -1793,19 +2028,23 @@
           <div class="grid limits-grid">
             <div class="reveal" style="--i:1">
               <h3>The judge is also an LLM</h3>
-              <p class="subtext">While grounded by evidence text, language models can occasionally misread nuanced domain jargon. We display full reasoning strings so you can review decisions.</p>
+              <p class="subtext">While grounded by evidence text, language models can occasionally misread nuanced
+                domain jargon. We display full reasoning strings so you can review decisions.</p>
             </div>
             <div class="reveal" style="--i:2">
               <h3>Search quality bounds accuracy</h3>
-              <p class="subtext">If web search retrieves low-relevance or conflicting articles, the pipeline marks the claim Unverifiable rather than inventing facts.</p>
+              <p class="subtext">If web search retrieves low-relevance or conflicting articles, the pipeline marks the
+                claim Unverifiable rather than inventing facts.</p>
             </div>
             <div class="reveal" style="--i:3">
               <h3>Undated pages are harder to judge</h3>
-              <p class="subtext">Websites that omit publication headers cannot be definitively timestamped, capping maximum freshness confidence at 85 points.</p>
+              <p class="subtext">Websites that omit publication headers cannot be definitively timestamped, capping
+                maximum freshness confidence at 85 points.</p>
             </div>
             <div class="reveal" style="--i:4">
               <h3>Model calls add latency</h3>
-              <p class="subtext">Running extraction, live search, multi-model analysis, and judging sequentially takes between 4 and 15 seconds per audit.</p>
+              <p class="subtext">Running extraction, live search, multi-model analysis, and judging sequentially takes
+                between 4 and 15 seconds per audit.</p>
             </div>
           </div>
 
@@ -1855,7 +2094,8 @@
               Audit your local or frontier LLM outputs in real time against live web sources.
             </p>
 
-            <div class="terminal-card tick" style="margin: 36px auto 36px; max-width: 680px;" role="region" aria-label="Terminal command: run StaleCheck locally">
+            <div class="terminal-card tick" style="margin: 36px auto 36px; max-width: 680px;" role="region"
+              aria-label="Terminal command: run StaleCheck locally">
               <div class="terminal-comment">/* Run locally in seconds */</div>
               <div class="terminal-prompt">
                 <span>$</span>
@@ -1865,7 +2105,7 @@
 
             <div class="hero-actions" style="margin: 0 auto; justify-content: center;">
               <a href="/app" class="btn primary tick" data-demo="[YOUR DEMO URL]">Launch Live App</a>
-              <a href="[YOUR GITHUB URL]" class="btn" target="_blank" rel="noopener noreferrer">View Source on GitHub</a>
+              <a href="https://github.com/Pranav-sood-hash/stale_check" class="btn" target="_blank" rel="noopener noreferrer" data-github="[YOUR GITHUB URL]">View Source on GitHub</a>
             </div>
           </div>
         </section>
@@ -1883,7 +2123,7 @@
   </div>
 
   <script>
-    (function() {
+    (function () {
       'use strict';
 
       // 1. Mobile Menu Toggle
@@ -2061,4 +2301,5 @@
     })();
   </script>
 </body>
+
 </html>
