@@ -17,16 +17,29 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field, ConfigDict
 import logging
+import sys
+
+# Ensure backend directory and project root are in sys.path for direct file execution/import
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_current_dir)
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 try:
-    from .graph import app_graph, local_answer
+    from backend.graph import app_graph, local_answer
 except ImportError:
-    from graph import app_graph, local_answer
+    try:
+        from graph import app_graph, local_answer
+    except ImportError:
+        from .graph import app_graph, local_answer
 
 logger = logging.getLogger("stalecheck")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 api = FastAPI(title="StaleCheck API")
+app = api  # Alias for ASGI / serverless runtimes expecting 'app'
 
 RATE_LIMIT = 20
 WINDOW_SECONDS = 60
