@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
@@ -324,6 +324,35 @@ async def ask_stream(body: In, request: Request):
         }
     )
 
+landing_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "landing"))
+if not os.path.exists(os.path.join(landing_path, "index.html")):
+    alt_landing = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "landing"))
+    if os.path.exists(os.path.join(alt_landing, "index.html")):
+        landing_path = alt_landing
+
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+
+@api.get("/landing")
+@api.get("/landing/")
+async def serve_landing_page():
+    landing_file = os.path.join(landing_path, "index.html")
+    if os.path.exists(landing_file):
+        return FileResponse(landing_file)
+    return FileResponse(os.path.join(frontend_path, "index.html"))
+
+@api.get("/app")
+@api.get("/app/")
+async def serve_main_app():
+    return FileResponse(os.path.join(frontend_path, "index.html"))
+
+@api.get("/")
+async def serve_root_page(request: Request):
+    if request.query_params.get("app") == "1":
+        return FileResponse(os.path.join(frontend_path, "index.html"))
+    landing_file = os.path.join(landing_path, "index.html")
+    if os.path.exists(landing_file):
+        return FileResponse(landing_file)
+    return FileResponse(os.path.join(frontend_path, "index.html"))
+
 if os.path.exists(frontend_path):
-    api.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+    api.mount("/static", StaticFiles(directory=frontend_path, html=True), name="static")
